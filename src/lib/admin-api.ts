@@ -25,6 +25,7 @@ export function getDelegate(resourceKey: string) {
       delegate: "menuItem",
       orderBy: [{ location: "asc" }, { order: "asc" }],
     },
+    newsletter: { delegate: "newsletterSubscriber", orderBy: [{ createdAt: "desc" }] },
   };
   const entry = map[resourceKey];
   if (!entry) return null;

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/site/page-header";
 import { PostCard, type PostCardData } from "./post-card";
 import { formatJalali } from "@/lib/jalali";
 import { SectionHeading } from "./section-heading";
+import { pickLocalized, type Locale } from "@/lib/i18n-dictionaries";
 import {
   CalendarDays,
   Eye,
@@ -35,15 +37,23 @@ export async function PostDetail({ slug }: { slug: string }) {
 
   const isAnnouncement = post.type === "ANNOUNCEMENT";
 
+  // زبان فعال از کوکی (توسط SitePrefsProvider تنظیم می‌شود)
+  const store = await cookies();
+  const locale = (store.get("uast_locale")?.value || "fa") as Locale;
+  const rec = post as unknown as Record<string, unknown>;
+  const locTitle = pickLocalized(rec, "title", locale);
+  const locExcerpt = pickLocalized(rec, "excerpt", locale);
+  const locContent = pickLocalized(rec, "content", locale) || post.content;
+
   return (
     <>
       <PageHeader
-        title={post.title}
+        title={locTitle}
         breadcrumb={[
           isAnnouncement
             ? { label: "اطلاعیه‌ها", href: "/announcements" }
             : { label: "اخبار مرکز", href: "/news" },
-          { label: post.title },
+          { label: locTitle },
         ]}
         image={post.coverImage}
       />
@@ -54,7 +64,7 @@ export async function PostDetail({ slug }: { slug: string }) {
             <div className="aspect-[16/8] overflow-hidden bg-secondary">
               <img
                 src={post.coverImage}
-                alt={post.title}
+                alt={locTitle}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -88,15 +98,15 @@ export async function PostDetail({ slug }: { slug: string }) {
               </span>
             </div>
 
-            {post.excerpt && (
+            {locExcerpt && (
               <p className="mt-6 rounded-2xl bg-secondary/70 border-r-4 border-gold p-4 text-sm leading-8 text-foreground/90">
-                {post.excerpt}
+                {locExcerpt}
               </p>
             )}
 
             <div
               className="rich-content mt-8"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: locContent }}
             />
           </div>
         </div>

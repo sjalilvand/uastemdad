@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SitePrefsProvider, PREFS_BOOT_SCRIPT } from "@/lib/prefs";
 
 export const metadata: Metadata = {
   title: {
@@ -19,13 +21,19 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground min-h-screen flex flex-col">
+        {/* اعمال تنظیمات شخصی‌سازی (زبان، فونت، اندازه و…) قبل از رندر */}
+        <Script
+          id="prefs-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: PREFS_BOOT_SCRIPT }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <SitePrefsProvider>{children}</SitePrefsProvider>
           <Toaster />
         </ThemeProvider>
       </body>

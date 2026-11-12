@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 import { TodayDate } from "./today-date";
+import { LocaleSwitcher } from "./locale-switcher";
+import { usePrefs } from "@/lib/prefs";
 import type { MenuNode } from "@/lib/menu";
 import { isExternal } from "@/lib/menu";
 import { getPhones } from "@/lib/settings";
@@ -18,7 +20,9 @@ import {
   Search,
   LayoutDashboard,
   CalendarDays,
+  UserRoundPlus,
   X,
+  Settings2,
 } from "lucide-react";
 import {
   Sheet,
@@ -27,6 +31,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { PrefsPanel } from "./prefs-panel";
 
 interface HeaderProps {
   mainMenu: MenuNode[];
@@ -37,8 +42,10 @@ interface HeaderProps {
 export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const router = useRouter();
+  const { t } = usePrefs();
   const phones = getPhones(settings);
 
   const submitSearch = (e: React.FormEvent) => {
@@ -112,12 +119,20 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
               </Link>
             ))}
             <Link
-              href="/admin"
+              href="/membership"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-gold hover:bg-white/10 transition-colors"
             >
-              <LayoutDashboard className="h-3.5 w-3.5" />
-              پنل مدیریت
+              <UserRoundPlus className="h-3.5 w-3.5" />
+              {t("top.memberArea")}
             </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded hover:bg-white/10 transition-colors"
+            >
+              <LayoutDashboard className="h-3.5 w-3.5 text-gold" />
+              {t("top.adminPanel")}
+            </Link>
+            <LocaleSwitcher light />
           </div>
         </div>
       </div>
@@ -196,6 +211,16 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
             >
               {searchOpen ? <X className="h-4.5 w-4.5" /> : <Search className="h-4.5 w-4.5" />}
             </button>
+            <button
+              type="button"
+              aria-label={t("header.personalize")}
+              title={t("header.personalize")}
+              onClick={() => setPrefsOpen(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+            >
+              <Settings2 className="h-4.5 w-4.5" />
+            </button>
+            <LocaleSwitcher />
             <ThemeToggle />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -254,7 +279,7 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="جستجو در اخبار، اطلاعیه‌ها و صفحات…"
+                  placeholder={t("header.searchPlaceholder")}
                   className="w-full h-11 rounded-xl border border-input bg-background pr-10 pl-4 text-sm outline-none focus:ring-2 focus:ring-ring/40"
                 />
               </div>
@@ -262,12 +287,13 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
                 type="submit"
                 className="h-11 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
               >
-                جستجو
+                {t("header.searchButton")}
               </button>
             </form>
           </div>
         )}
       </div>
+      <PrefsPanel open={prefsOpen} onOpenChange={setPrefsOpen} />
     </header>
   );
 }

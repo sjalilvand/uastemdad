@@ -1,6 +1,8 @@
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ChatWidget } from "@/components/site/chat-widget";
+import { VisitTracker } from "@/components/site/visit-tracker";
+import { PrefsFab } from "@/components/site/prefs-panel";
 import { getMenus } from "@/lib/menu";
 import { getSettings } from "@/lib/settings";
 import { db } from "@/lib/db";
@@ -61,6 +63,8 @@ export default async function SiteLayout({
         }))}
       />
       <ChatWidget welcome={settings.chatWelcome} />
+      <PrefsFab />
+      <VisitTracker />
     </div>
   );
 }

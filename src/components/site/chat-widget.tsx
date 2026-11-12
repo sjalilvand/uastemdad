@@ -3,20 +3,37 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, MessageCircle, X, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePrefs } from "@/lib/prefs";
+import type { Locale } from "@/lib/i18n-dictionaries";
 
 interface ChatMsg {
   role: "user" | "assistant";
   content: string;
 }
 
-const SUGGESTIONS = [
-  "رشته‌های تحصیلی مرکز کدام‌اند؟",
-  "آدرس و تلفن مرکز چیست؟",
-  "آخرین اخبار مرکز را بگو",
-  "سامانه‌های آموزشی کدام‌اند؟",
-];
+const SUGGESTIONS: Record<Locale, string[]> = {
+  fa: [
+    "رشته‌های تحصیلی مرکز کدام‌اند؟",
+    "آدرس و تلفن مرکز چیست؟",
+    "آخرین اخبار مرکز را بگو",
+    "سامانه‌های آموزشی کدام‌اند؟",
+  ],
+  en: [
+    "What programs does the center offer?",
+    "What is the center's address and phone?",
+    "Show me the latest news",
+    "What educational systems are available?",
+  ],
+  ar: [
+    "ما هي البرامج الأكاديمية للمركز؟",
+    "ما هو عنوان وهاتف المركز؟",
+    "أخبرني بآخر الأخبار",
+    "ما هي الأنظمة التعليمية المتاحة؟",
+  ],
+};
 
 export function ChatWidget({ welcome }: { welcome: string }) {
+  const { t, locale } = usePrefs();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -73,7 +90,7 @@ export function ChatWidget({ welcome }: { welcome: string }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: content }),
+        body: JSON.stringify({ sessionId, message: content, locale }),
       });
       const data = await res.json();
       setMessages((m) => [
@@ -82,7 +99,11 @@ export function ChatWidget({ welcome }: { welcome: string }) {
           role: "assistant",
           content:
             data?.reply ||
-            "پاسخی دریافت نشد؛ لطفاً چند لحظه بعد دوباره تلاش کنید.",
+            (locale === "en"
+              ? "No response received; please try again in a moment."
+              : locale === "ar"
+                ? "لم يتم تلقي رد؛ يرجى المحاولة بعد قليل."
+                : "پاسخی دریافت نشد؛ لطفاً چند لحظه بعد دوباره تلاش کنید."),
         },
       ]);
     } catch {
@@ -90,7 +111,12 @@ export function ChatWidget({ welcome }: { welcome: string }) {
         ...m,
         {
           role: "assistant",
-          content: "خطا در برقراری ارتباط با سرور؛ لطفاً دوباره تلاش کنید.",
+          content:
+            locale === "en"
+              ? "Error connecting to the server; please try again."
+              : locale === "ar"
+                ? "خطأ في الاتصال بالخادم؛ يرجى المحاولة مرة أخرى."
+                : "خطا در برقراری ارتباط با سرور؛ لطفاً دوباره تلاش کنید.",
         },
       ]);
     } finally {
@@ -103,7 +129,7 @@ export function ChatWidget({ welcome }: { welcome: string }) {
       {/* دکمه شناور */}
       <button
         type="button"
-        aria-label="گفتگوی آنلاین"
+        aria-label={t("chat.title")}
         onClick={toggleOpen}
         className={cn(
           "fixed bottom-5 left-5 z-[60] flex items-center justify-center rounded-full shadow-2xl transition-all duration-300",
@@ -135,11 +161,15 @@ export function ChatWidget({ welcome }: { welcome: string }) {
             </div>
             <div className="min-w-0">
               <div className="text-white font-bold text-sm">
-                دستیار هوشمند مرکز
+                {t("chat.title")}
               </div>
               <div className="text-white/70 text-[11px] flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-green-400 inline-block"></span>
-                همیشه آنلاین — پاسخ فوری
+                {locale === "en"
+                  ? "Always online — instant answers"
+                  : locale === "ar"
+                    ? "متاح دائماً — إجابات فورية"
+                    : "همیشه آنلاین — پاسخ فوری"}
               </div>
             </div>
           </div>
@@ -181,7 +211,7 @@ export function ChatWidget({ welcome }: { welcome: string }) {
           {/* پیشنهادها */}
           {messages.length <= 1 && !loading && (
             <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-              {SUGGESTIONS.map((s) => (
+              {(SUGGESTIONS[locale] || SUGGESTIONS.fa).map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -205,16 +235,16 @@ export function ChatWidget({ welcome }: { welcome: string }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="پرسش خود را بنویسید…"
+              placeholder={t("chat.placeholder")}
               className="flex-1 h-10 rounded-xl bg-background border border-input px-3.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              aria-label="ارسال"
+              aria-label={t("chat.send")}
               className="h-10 w-10 rounded-xl emerald-gradient text-white flex items-center justify-center disabled:opacity-40 transition-opacity"
             >
-              <Send className="h-4 w-4 -scale-x-100" />
+              <Send className={cn("h-4 w-4", locale !== "en" && "-scale-x-100")} />
             </button>
           </form>
         </div>

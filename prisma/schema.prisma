@@ -32,6 +32,12 @@ model Post {
   slug        String    @unique
   excerpt     String    @default("")
   content     String    @default("")
+  titleEn     String    @default("")
+  titleAr     String    @default("")
+  excerptEn   String    @default("")
+  excerptAr   String    @default("")
+  contentEn   String    @default("")
+  contentAr   String    @default("")
   coverImage  String?
   type        String    @default("NEWS")
   featured    Boolean   @default(false)
@@ -52,6 +58,12 @@ model Page {
   slug       String   @unique
   content    String   @default("")
   excerpt    String   @default("")
+  titleEn    String   @default("")
+  titleAr    String   @default("")
+  excerptEn  String   @default("")
+  excerptAr  String   @default("")
+  contentEn  String   @default("")
+  contentAr  String   @default("")
   icon       String   @default("file-text")
   image      String?
   showInMenu Boolean  @default(true)
@@ -115,6 +127,8 @@ model ExternalSystem {
 model Program {
   id          String  @id @default(cuid())
   title       String
+  titleEn     String  @default("")
+  titleAr     String  @default("")
   degree      String  @default("کاردانی حرفه‌ای")
   description String  @default("")
   isActive    Boolean @default(true)
@@ -158,6 +172,54 @@ model Slide {
   linkUrl  String  @default("#")
   order    Int     @default(0)
   isActive Boolean @default(true)
+}
+
+/** عضویت دانشجویان و متقاضیان */
+model Member {
+  id           String    @id @default(cuid())
+  firstName    String
+  lastName     String
+  studentId    String    @unique
+  nationalId   String    @default("")
+  email        String    @unique
+  phone        String    @default("")
+  field        String    @default("")
+  degree       String    @default("کارشناسی")
+  university   String    @default("")
+  passwordHash String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  newsletter   Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+}
+
+/** مشترکان خبرنامه */
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/** آمار بازدید صفحات */
+model Visit {
+  id        String   @id @default(cuid())
+  visitorId String
+  path      String
+  title     String   @default("")
+  browser   String   @default("")
+  os        String   @default("")
+  device    String   @default("desktop")
+  referrer  String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId])
+  @@index([path])
 }
 
 model ChatMessage {

@@ -63,6 +63,9 @@ async function main() {
       at: jdate(2026, 9, 8),
       excerpt:
         "مرکز علمی‌کاربردی کمیته امداد امام خمینی(ره) برای سال تحصیلی ۱۴۰۵-۱۴۰۶ در ۹ رشته تحصیلی در مقاطع کاردانی حرفه‌ای و کارشناسی حرفه‌ای دانشجو می‌پذیرد. ثبت‌نام متقاضیان از ۱۷ شهریورماه ۱۴۰۵ آغاز شده و تا ۲۵ شهریورماه ۱۴۰۵ ادامه خواهد داشت.",
+      titleEn: "Registration for the 2026–2027 Academic Year (Associate & Bachelor's)",
+      excerptEn:
+        "The UAST Emdad Applied-Science Center admits students for the 2026–2027 academic year in 9 programs at the professional associate and professional bachelor levels. Registration runs from 8 to 16 September 2026.",
       content: `<p>مرکز علمی‌کاربردی کمیته امداد امام خمینی(ره) دانشجو می‌پذیرد.</p><p>مرکز علمی‌کاربردی کمیته امداد امام خمینی(ره) برای سال تحصیلی ۱۴۰۵-۱۴۰۶ در ۹ رشته تحصیلی در مقاطع کاردانی حرفه‌ای و کارشناسی حرفه‌ای دانشجو می‌پذیرد.</p><p>به گزارش روابط عمومی مرکز علمی‌کاربردی کمیته امداد امام خمینی(ره)، ثبت‌نام متقاضیان از ۱۷ شهریورماه ۱۴۰۵ آغاز شده و تا ۲۵ شهریورماه ۱۴۰۵ ادامه خواهد داشت.</p>`,
     },
     {
@@ -183,6 +186,8 @@ async function main() {
         slug: p.slug,
         excerpt: p.excerpt,
         content: p.content,
+        titleEn: p.titleEn || "",
+        excerptEn: p.excerptEn || "",
         coverImage: p.cover,
         categoryId: p.cat,
         type: "NEWS",
@@ -550,6 +555,7 @@ async function main() {
     { label: "خانه", url: "/" },
     { label: "اخبار", url: "/news" },
     { label: "تماس با ما", url: "/contact" },
+    { label: "عضویت دانشجویان", url: "/membership" },
   ];
   for (let i = 0; i < quick.length; i++) {
     await db.menuItem.create({
@@ -557,7 +563,53 @@ async function main() {
     });
   }
 
-  console.log("✅ Seed انجام شد — ورود: admin / admin123");
+  console.log("→ عضو نمونه دانشجویی");
+  await db.member.create({
+    data: {
+      firstName: "زهرا",
+      lastName: "محمدی",
+      studentId: "0921123456",
+      email: "member@demo.ir",
+      phone: "09121234567",
+      field: "مدیریت امور بانکی",
+      degree: "کارشناسی",
+      university: "مرکز علمی–کاربردی کمیته امداد",
+      passwordHash: hashPassword("member1234"),
+      status: "APPROVED",
+      newsletter: true,
+    },
+  });
+  await db.member.create({
+    data: {
+      firstName: "علی",
+      lastName: "رضایی",
+      studentId: "0921654321",
+      email: "ali.rezaei@demo.ir",
+      phone: "09129876543",
+      field: "حسابداری",
+      degree: "کاردانی",
+      university: "مرکز علمی–کاربردی کمیته امداد",
+      passwordHash: hashPassword("member1234"),
+      status: "PENDING",
+      newsletter: true,
+    },
+  });
+
+  console.log("→ مشترکان نمونه خبرنامه");
+  const subs = [
+    { email: "member@demo.ir", name: "زهرا محمدی" },
+    { email: "student1@demo.ir", name: "" },
+    { email: "student2@demo.ir", name: "حسین کریمی" },
+  ];
+  for (const s of subs) {
+    await db.newsletterSubscriber.upsert({
+      where: { email: s.email },
+      update: {},
+      create: { email: s.email, name: s.name },
+    });
+  }
+
+  console.log("✅ Seed انجام شد — ورود ادمین: admin / admin123 | عضو نمونه: 0921123456 / member1234");
 }
 
 main()

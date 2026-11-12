@@ -38,8 +38,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Vazirmatn", "Tahoma", sans-serif;
-  --font-mono: "Vazirmatn", monospace;
+  --font-sans: var(--user-font, "Vazirmatn", "Tahoma", sans-serif);
+  --font-mono: var(--user-font, "Vazirmatn", monospace);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -159,7 +159,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Vazirmatn", Tahoma, sans-serif;
+    font-family: var(--user-font, "Vazirmatn", Tahoma, sans-serif);
   }
   h1, h2, h3, h4, h5, h6 {
     font-weight: 800;
@@ -301,6 +301,96 @@
 /* شمارنده اعداد */
 .tabular-fa {
   font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================ */
+/* شخصی‌سازی و دسترسی‌پذیری — کنترل با dataset روی تگ html           */
+/* ================================================================ */
+
+/* ---- انتخاب فونت ---- */
+html[data-font="system"] {
+  --user-font: system-ui, -apple-system, "Segoe UI", "Vazirmatn", Tahoma, sans-serif;
+}
+html[data-font="tahoma"] {
+  --user-font: Tahoma, "Vazirmatn", sans-serif;
+}
+html[data-font="serif"] {
+  --user-font: "Noto Naskh Arabic", "Traditional Arabic", "IRANSans", "Times New Roman", serif;
+}
+
+/* ---- اندازه متن (مقیاس rem) ---- */
+html[data-size="sm"] { font-size: 14.5px; }
+html[data-size="md"] { font-size: 16px; }
+html[data-size="lg"] { font-size: 17.5px; }
+html[data-size="xl"] { font-size: 19.5px; }
+
+/* ---- رنگ پس‌زمینه (فقط حالت روشن) ---- */
+html:not(.dark)[data-bg="cream"] { --background: #fdf6e7; --muted: #f5ecda; }
+html:not(.dark)[data-bg="mint"]  { --background: #eef7f1; --muted: #e2f0e7; }
+html:not(.dark)[data-bg="sky"]   { --background: #edf4f9; --muted: #e0ecf4; }
+html:not(.dark)[data-bg="sand"]  { --background: #f7f1e8; --muted: #efe6d7; }
+
+/* ---- کنتراست بالا ---- */
+html[data-contrast="high"]:not(.dark) {
+  --foreground: #000000;
+  --background: #ffffff;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --muted-foreground: #1f1f1f;
+  --secondary-foreground: #000000;
+  --border: #454545;
+  --input: #454545;
+}
+html[data-contrast="high"].dark {
+  --foreground: #ffffff;
+  --background: #000000;
+  --card: #0b0b0b;
+  --popover: #0b0b0b;
+  --muted-foreground: #e2e2e2;
+  --border: #8a8a8a;
+  --input: #8a8a8a;
+}
+html[data-contrast="high"] * {
+  outline-width: 2px;
+}
+
+/* ---- زیرخط لینک‌ها ---- */
+html[data-links="on"] a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+/* ---- کاهش حرکت ---- */
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---- فاصله سطر بیشتر ---- */
+html[data-lines="wide"] body {
+  line-height: 2.2;
+}
+html[data-lines="wide"] .rich-content {
+  line-height: 2.5;
+}
+
+/* ---- سازگاری جهت LTR (زبان انگلیسی) ---- */
+html[dir="ltr"] .rich-content ul,
+html[dir="ltr"] .rich-content ol {
+  padding-right: 0;
+  padding-left: 1.5rem;
+}
+html[dir="ltr"] .rich-content blockquote {
+  border-right: 0;
+  border-left: 4px solid var(--gold);
+}
+html[dir="ltr"] .rich-content td,
+html[dir="ltr"] .rich-content th {
+  text-align: left;
 }
 
 /* ویرایشگر متن ادمین */
