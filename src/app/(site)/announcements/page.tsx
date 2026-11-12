@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/site/page-header";
 import { PostArchive } from "@/components/site/post-archive";
 import { Search } from "lucide-react";
+import { getLocale, serverT, localizePosts } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export default async function AnnouncementsPage({
 }: {
   searchParams: Promise<{ page?: string; q?: string }>;
 }) {
+  const locale = await getLocale();
+  const T = serverT(locale);
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const q = (sp.q || "").trim();
@@ -32,7 +35,7 @@ export default async function AnnouncementsPage({
       : {}),
   };
 
-  const [posts, total] = await Promise.all([
+  const [postsRaw, total] = await Promise.all([
     db.post.findMany({
       where,
       orderBy: { publishedAt: "desc" },
@@ -43,14 +46,15 @@ export default async function AnnouncementsPage({
     db.post.count({ where }),
   ]);
 
+  const posts = await localizePosts(postsRaw, locale);
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <>
       <PageHeader
-        title="اطلاعیه‌ها"
-        subtitle="اطلاعیه‌های رسمی و بخشنامه‌های آموزشی مرکز علمی–کاربردی کمیته امداد"
-        breadcrumb={[{ label: "اطلاعیه‌ها" }]}
+        title={T("post.announcementsList")}
+        subtitle={T("post.announcementsSubtitle", "اطلاعیه‌های رسمی و بخشنامه‌های آموزشی مرکز علمی–کاربردی کمیته امداد")}
+        breadcrumb={[{ label: T("post.announcementsList") }]}
       />
       <div className="mx-auto max-w-7xl px-4 py-10">
         <form action="/announcements" className="relative max-w-xl mb-8">
@@ -58,7 +62,7 @@ export default async function AnnouncementsPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="جستجو در اطلاعیه‌ها…"
+            placeholder={T("post.searchAnnouncements", "جستجو در اطلاعیه‌ها…")}
             className="w-full h-12 rounded-xl border border-input bg-card pr-11 pl-4 text-sm outline-none focus:ring-2 focus:ring-ring/40"
           />
         </form>

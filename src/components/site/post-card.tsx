@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { formatJalali } from "@/lib/jalali";
+import { formatDate } from "@/lib/jalali";
 import { Badge } from "@/components/ui/badge";
 import { Eye, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -91,7 +91,7 @@ export function PostCard({
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/60 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5 text-gold" />
-            {formatJalali(post.publishedAt)}
+            {formatDate(post.publishedAt, locale)}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Eye className="h-3.5 w-3.5" />

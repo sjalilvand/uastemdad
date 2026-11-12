@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronLeft, Home } from "lucide-react";
+import { usePrefs } from "@/lib/prefs";
 
 export function PageHeader({
   title,
@@ -12,6 +15,7 @@ export function PageHeader({
   breadcrumb: { label: string; href?: string }[];
   image?: string | null;
 }) {
+  const { t } = usePrefs();
   return (
     <section className="relative overflow-hidden bg-sidebar pattern-bg">
       {image && (
@@ -31,7 +35,7 @@ export function PageHeader({
         >
           <Link href="/" className="inline-flex items-center gap-1 hover:text-white transition-colors">
             <Home className="h-3.5 w-3.5" />
-            خانه
+            {t("common.home")}
           </Link>
           {breadcrumb.map((b, i) => (
             <span key={i} className="inline-flex items-center gap-1.5">

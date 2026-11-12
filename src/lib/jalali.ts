@@ -157,3 +157,32 @@ export function formatJalali(
 export function todayJalali(): string {
   return formatJalali(new Date(), { withWeekday: true });
 }
+
+/** تاریخ مطابق زبان فعال: شمسی برای فارسی، میلادی برای انگلیسی/عربی */
+export function formatDate(
+  date: Date | string | number,
+  locale: string = "fa",
+  opts?: { withWeekday?: boolean }
+): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  if (locale === "en") {
+    let out = d.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    if (opts?.withWeekday) out = `${d.toLocaleDateString("en-GB", { weekday: "long" })}, ${out}`;
+    return out;
+  }
+  if (locale === "ar") {
+    let out = d.toLocaleDateString("ar", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    if (opts?.withWeekday) out = `${d.toLocaleDateString("ar", { weekday: "long" })}، ${out}`;
+    return out;
+  }
+  return formatJalali(d, opts);
+}

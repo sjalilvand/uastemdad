@@ -7,30 +7,47 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MessageCircleQuestion } from "lucide-react";
+import { getLocale, serverT } from "@/lib/server-i18n";
+import { translateBatch, isTargetLocale } from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "پرسش‌های متداول" };
 
 export default async function FaqPage() {
-  const faqs = await db.faq.findMany({
+  const locale = await getLocale();
+  const T = serverT(locale);
+  const faqsRaw = await db.faq.findMany({
     where: { isActive: true },
     orderBy: { order: "asc" },
   });
 
+  let faqs = faqsRaw;
+  if (isTargetLocale(locale)) {
+    const map = await translateBatch(
+      faqsRaw.flatMap((f) => [f.question, f.answer]).filter(Boolean),
+      locale
+    );
+    faqs = faqsRaw.map((f) => ({
+      ...f,
+      question: map.get(f.question.trim()) || f.question,
+      answer: map.get(f.answer.trim()) || f.answer,
+    }));
+  }
+
   return (
     <>
       <PageHeader
-        title="پرسش‌های متداول"
-        subtitle="پاسخ پرتکرارترین پرسش‌های دانشجویان، اساتید و متقاضیان ثبت‌نام"
-        breadcrumb={[{ label: "پرسش‌های متداول" }]}
+        title={T("faq.title")}
+        subtitle={T("faq.subtitle")}
+        breadcrumb={[{ label: T("faq.title") }]}
       />
       <div className="mx-auto max-w-3xl px-4 py-10">
         {faqs.length === 0 ? (
           <div className="rounded-2xl bg-secondary/50 border border-dashed border-border p-14 text-center">
             <MessageCircleQuestion className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
             <p className="text-sm text-muted-foreground">
-              هنوز پرسشی ثبت نشده است؛ پرسش‌ها از پنل مدیریت قابل افزودن هستند.
+              {T("faq.empty")}
             </p>
           </div>
         ) : (
@@ -41,7 +58,11 @@ export default async function FaqPage() {
                   <AccordionTrigger className="text-right text-sm font-bold leading-7 hover:text-primary hover:no-underline">
                     <span className="flex items-start gap-3">
                       <span className="shrink-0 h-6 w-6 rounded-lg bg-secondary text-primary text-[11px] font-extrabold flex items-center justify-center mt-0.5">
-                        {(i + 1).toLocaleString("fa-IR")}
+                        {locale === "fa"
+                          ? (i + 1).toLocaleString("fa-IR")
+                          : locale === "ar"
+                            ? (i + 1).toLocaleString("ar")
+                            : String(i + 1)}
                       </span>
                       {f.question}
                     </span>

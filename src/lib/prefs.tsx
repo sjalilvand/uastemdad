@@ -6,9 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { DICTS, type Locale } from "./i18n-dictionaries";
 
 /* ------------------------------------------------------------------ */
@@ -138,6 +140,8 @@ function toLocaleDigits(value: number | string, locale: Locale): string {
 
 export function SitePrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const router = useRouter();
+  const prevLocale = useRef<string | null>(null);
 
   // بارگذاری اولیه در کلاینت — پس از هیدریشن تا با رندر سرور هماهنگ بماند
   useEffect(() => {
@@ -156,6 +160,18 @@ export function SitePrefsProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [prefs]);
+
+  // با تغییر زبان، کامپوننت‌های سروری (محتوای ترجمه‌شده) دوباره بارگذاری می‌شوند
+  useEffect(() => {
+    if (prevLocale.current === null) {
+      prevLocale.current = prefs.locale;
+      return;
+    }
+    if (prevLocale.current !== prefs.locale) {
+      prevLocale.current = prefs.locale;
+      router.refresh();
+    }
+  }, [prefs.locale, router]);
 
   const set = useCallback((patch: Partial<Prefs>) => {
     setPrefs((prev) => ({ ...prev, ...patch }));

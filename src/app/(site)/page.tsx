@@ -6,7 +6,10 @@ import { StatsBand } from "@/components/site/stats-band";
 import { SectionHeading } from "@/components/site/section-heading";
 import { PostCard } from "@/components/site/post-card";
 import { AppPromoCard } from "@/components/site/site-qr";
-import { toFa, formatJalali } from "@/lib/jalali";
+import { HomeMap } from "@/components/site/home-map";
+import { getLocale, serverT, localizePosts, localizeStrings } from "@/lib/server-i18n";
+import { pickLocalizedAuto } from "@/lib/translate";
+import { formatDate, toFa } from "@/lib/jalali";
 import {
   Monitor,
   CalendarDays,
@@ -26,7 +29,10 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [slides, news, announcements, programs, systems, gallery, president, settings, upcomingEvents, videoCount] =
+  const locale = await getLocale();
+  const T = serverT(locale);
+
+  const [slidesRaw, newsRaw, announcementsRaw, programsRaw, systems, galleryRaw, president, settings, upcomingEventsRaw, videoCount] =
     await Promise.all([
       db.slide.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
       db.post.findMany({
@@ -63,25 +69,70 @@ export default async function HomePage() {
       db.video.count({ where: { isActive: true } }),
     ]);
 
+  /* -------------------- ترجمهٔ آنلاین محتوای دیتابیس -------------------- */
+  const [news, announcements, events] = await Promise.all([
+    localizePosts(newsRaw, locale),
+    localizePosts(announcementsRaw, locale),
+    localizePosts(
+      upcomingEventsRaw.map((e) => ({ ...e, excerpt: e.description || "" })),
+      locale
+    ),
+  ]);
+
+  const [slideTr, galleryTr, programTr, systemTr, eventLocTr] = await Promise.all([
+    localizeStrings(slidesRaw.map((s) => `${s.title}|||${s.subtitle}`), locale),
+    localizeStrings(galleryRaw.map((g) => g.title), locale),
+    localizeStrings(programsRaw.map((p) => p.title), locale),
+    localizeStrings(systems.map((s) => `${s.title}|||${s.description}`), locale),
+    localizeStrings(events.map((e) => e.location), locale),
+  ]);
+
+  const slides = slidesRaw.map((s, i) => {
+    const [title, subtitle] = (slideTr[i] || `${s.title}|||${s.subtitle}`).split("|||");
+    return {
+      id: s.id,
+      title: title || s.title,
+      subtitle: subtitle || s.subtitle,
+      imageUrl: s.imageUrl,
+      linkUrl: s.linkUrl,
+    };
+  });
+  const gallery = galleryRaw.map((g, i) => ({
+    ...g,
+    title: galleryTr[i] || g.title,
+  }));
+  const programs = programsRaw.map((p, i) => ({
+    ...p,
+    title: programTr[i] || p.title,
+  }));
+  const systemsLocalized = systems.map((s, i) => {
+    const [title, description] = (systemTr[i] || `${s.title}|||${s.description}`).split("|||");
+    return { ...s, title: title || s.title, description: description || s.description };
+  });
+  const eventsLocalized = events.map((e, i) => ({
+    ...e,
+    location: eventLocTr[i] || e.location,
+  }));
+
+  const mediaDesc =
+    videoCount > 0
+      ? T("home.mediaDescV").replace("{n}", locale === "fa" ? toFa(videoCount) : String(videoCount))
+      : T("home.mediaDesc");
+  /* ---------------------------------------------------------------------- */
+
   const [featured, ...restNews] = news;
+  const lat = Number(settings.mapLat) || 35.74041;
+  const lng = Number(settings.mapLng) || 51.49027;
 
   return (
     <div className="pb-0">
       {/* اسلایدر */}
-      <HeroSlider
-        slides={slides.map((s) => ({
-          id: s.id,
-          title: s.title,
-          subtitle: s.subtitle,
-          imageUrl: s.imageUrl,
-          linkUrl: s.linkUrl,
-        }))}
-      />
+      <HeroSlider slides={slides} />
 
       {/* دسترسی سریع به سامانه‌ها */}
       <div className="relative z-20 -mt-14 px-4">
         <div className="mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-4 gap-4">
-          {systems.map((s) => (
+          {systemsLocalized.map((s) => (
             <a
               key={s.id}
               href={s.url}
@@ -114,8 +165,8 @@ export default async function HomePage() {
           {/* ستون اخبار */}
           <div className="lg:col-span-2">
             <SectionHeading
-              title="آخرین اخبار مرکز"
-              subtitle="رویدادها و گزارش‌های آموزشی، پژوهشی و فرهنگی"
+              title={T("home.latestNews")}
+              subtitle={T("home.newsSubtitle")}
               moreHref="/news"
             />
             {featured && (
@@ -136,7 +187,7 @@ export default async function HomePage() {
             <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
               <div className="emerald-gradient pattern-bg px-5 py-4 flex items-center gap-2.5">
                 <Megaphone className="h-5 w-5 text-gold" />
-                <h3 className="text-white font-bold">اطلاعیه‌ها</h3>
+                <h3 className="text-white font-bold">{T("home.announcements")}</h3>
               </div>
               <ul className="divide-y divide-border/60">
                 {announcements.map((a) => (
@@ -153,7 +204,7 @@ export default async function HomePage() {
                           </div>
                           <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
                             <CalendarDays className="h-3 w-3" />
-                            {formatJalali(a.publishedAt)}
+                            {formatDate(a.publishedAt, locale)}
                           </div>
                         </div>
                       </div>
@@ -162,7 +213,7 @@ export default async function HomePage() {
                 ))}
                 {announcements.length === 0 && (
                   <li className="px-5 py-6 text-sm text-muted-foreground text-center">
-                    اطلاعیه‌ای ثبت نشده است
+                    {T("home.noAnnouncement")}
                   </li>
                 )}
               </ul>
@@ -171,28 +222,28 @@ export default async function HomePage() {
                   href="/announcements"
                   className="text-xs font-bold text-primary hover:text-gold inline-flex items-center gap-1 transition-colors"
                 >
-                  همه اطلاعیه‌ها
+                  {T("home.allAnnouncements")}
                   <ArrowLeft className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
 
             {/* رویدادهای پیش رو */}
-            {upcomingEvents.length > 0 && (
+            {eventsLocalized.length > 0 && (
               <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2.5">
                   <CalendarClock className="h-5 w-5 text-primary" />
-                  <h3 className="font-bold text-foreground">رویدادهای پیش رو</h3>
+                  <h3 className="font-bold text-foreground">{T("home.upcomingEvents")}</h3>
                   <Link
                     href="/events"
                     className="ms-auto text-[11px] font-bold text-primary hover:text-gold inline-flex items-center gap-1"
                   >
-                    تقویم کامل
+                    {T("home.fullCalendar")}
                     <ArrowLeft className="h-3 w-3" />
                   </Link>
                 </div>
                 <ul className="divide-y divide-border/60">
-                  {upcomingEvents.map((e) => (
+                  {eventsLocalized.map((e) => (
                     <li key={e.id} className="px-5 py-3.5 flex items-start gap-3">
                       <span className="mt-1 h-2 w-2 rounded-full bg-gold shrink-0" />
                       <div className="min-w-0">
@@ -201,7 +252,7 @@ export default async function HomePage() {
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                           <CalendarDays className="h-3 w-3" />
-                          {formatJalali(e.date, { withWeekday: true })}
+                          {formatDate(e.date, locale, { withWeekday: true })}
                         </div>
                       </div>
                     </li>
@@ -229,13 +280,13 @@ export default async function HomePage() {
                   {president.name}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  ریاست مرکز آموزش علمی–کاربردی کمیته امداد
+                  {T("home.presidentRole")}
                 </div>
                 <Link
                   href="/p/ریاست-مرکز"
                   className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-gold transition-colors"
                 >
-                  معرفی و سوابق
+                  {T("home.presidentMore")}
                   <ArrowLeft className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -245,7 +296,7 @@ export default async function HomePage() {
             <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2.5">
                 <GraduationCap className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-foreground">رشته‌های تحصیلی</h3>
+                <h3 className="font-bold text-foreground">{T("home.programs")}</h3>
               </div>
               <ul className="divide-y divide-border/60">
                 {programs.slice(0, 5).map((p) => (
@@ -262,7 +313,7 @@ export default async function HomePage() {
                   href="/programs"
                   className="text-xs font-bold text-primary hover:text-gold inline-flex items-center gap-1 transition-colors"
                 >
-                  جزئیات رشته‌ها
+                  {T("home.programsDetails")}
                   <ArrowLeft className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -277,10 +328,10 @@ export default async function HomePage() {
       {/* گالری */}
       <section className="mx-auto max-w-7xl px-4 py-14">
         <SectionHeading
-          title="گالری تصاویر"
-          subtitle="گزارش تصویری رویدادها و فضاهای مرکز"
+          title={T("home.gallery")}
+          subtitle={T("home.gallerySubtitle")}
           moreHref="/gallery"
-          moreLabel="همه تصاویر"
+          moreLabel={T("home.allImages")}
         />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {gallery.map((g, i) => (
@@ -305,6 +356,12 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* نقشه و مسیریابی */}
+      <section className="mx-auto max-w-7xl px-4 pb-14">
+        <SectionHeading title={T("map.title")} subtitle={T("map.subtitle")} />
+        <HomeMap lat={lat} lng={lng} address={settings.address} compact />
+      </section>
+
       {/* دسترسی سریع به بخش‌های جدید */}
       <section className="mx-auto max-w-7xl px-4 pb-4">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -317,12 +374,10 @@ export default async function HomePage() {
             </span>
             <span>
               <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                رسانه و ویدیوها
+                {T("home.media")}
               </span>
               <span className="block text-xs text-muted-foreground mt-1">
-                {videoCount > 0
-                  ? `تاکنون ${toFa(videoCount)} ویدیو و تیزر منتشر شده`
-                  : "ویدیوهای معرفی و تیزرهای مرکز"}
+                {mediaDesc}
               </span>
             </span>
           </Link>
@@ -335,10 +390,10 @@ export default async function HomePage() {
             </span>
             <span>
               <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                پرسش‌های متداول
+                {T("home.faq")}
               </span>
               <span className="block text-xs text-muted-foreground mt-1">
-                پاسخ پرتکرارترین پرسش‌های دانشجویان
+                {T("home.faqDesc")}
               </span>
             </span>
           </Link>
@@ -351,10 +406,10 @@ export default async function HomePage() {
             </span>
             <span>
               <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                نصب اپ موبایل
+                {T("home.app")}
               </span>
               <span className="block text-xs text-muted-foreground mt-1">
-                نصب مستقیم سامانه روی گوشی با QR
+                {T("home.appDesc")}
               </span>
             </span>
           </Link>
@@ -368,29 +423,26 @@ export default async function HomePage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-xs text-white mb-4">
                 <MessagesSquare className="h-3.5 w-3.5 text-gold" />
-                پاسخگویی هوشمند ۲۴ ساعته
+                {T("home.chatBadge")}
               </div>
               <h3 className="text-xl md:text-2xl font-extrabold text-white leading-relaxed">
-                پرسش خود را از دستیار هوشمند مرکز بپرسید
+                {T("home.chatTitle")}
               </h3>
               <p className="mt-3 text-white/70 text-sm leading-8">
-                دستیار هوشمند سامانه به اخبار و اطلاعیه‌های مرکز، رشته‌های تحصیلی،
-                سامانه‌های آموزشی، فرم‌ها و اطلاعات تماس مسلط است و به‌صورت
-                گفت‌وگومحور پاسخ می‌دهد. کافی است روی دکمه گفتگو (پایین صفحه)
-                بزنید.
+                {T("home.chatBody")}
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4 content-center">
               <div className="rounded-2xl bg-white/8 border border-white/15 p-5 text-white">
                 <Phone className="h-6 w-6 text-gold mb-3" />
-                <div className="text-sm font-bold mb-1">تلفن‌های تماس</div>
+                <div className="text-sm font-bold mb-1">{T("home.phonesTitle")}</div>
                 <div className="text-xs text-white/70 leading-6" dir="ltr">
                   {settings.phones}
                 </div>
               </div>
               <div className="rounded-2xl bg-white/8 border border-white/15 p-5 text-white">
                 <MapPin className="h-6 w-6 text-gold mb-3" />
-                <div className="text-sm font-bold mb-1">آدرس مرکز</div>
+                <div className="text-sm font-bold mb-1">{T("home.addressTitle")}</div>
                 <div className="text-xs text-white/70 leading-6">
                   {settings.address}
                 </div>
@@ -399,7 +451,7 @@ export default async function HomePage() {
                 href="/contact"
                 className="sm:col-span-2 rounded-2xl gold-gradient p-5 text-accent-foreground flex items-center justify-between font-bold text-sm hover:brightness-110 transition-all"
               >
-                فرم ارتباط با مرکز
+                {T("home.contactForm")}
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </div>

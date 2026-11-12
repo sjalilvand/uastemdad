@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/site/page-header";
-import { formatJalali } from "@/lib/jalali";
 import { ReadAloud } from "@/components/site/read-aloud";
+import { getLocale, serverT } from "@/lib/server-i18n";
+import { pickLocalizedAuto } from "@/lib/translate";
+import { formatDate } from "@/lib/jalali";
 import { FileText, UserRound, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,8 @@ export default async function DynamicPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const locale = await getLocale();
+  const T = serverT(locale);
   const { slug } = await params;
   const page = await db.page.findFirst({
     where: { slug: decodeURIComponent(slug), published: true },
@@ -62,16 +66,23 @@ export default async function DynamicPage({
     });
   }
 
+  const rec = page as unknown as Record<string, unknown>;
+  const [locTitle, locExcerpt, locContent] = await Promise.all([
+    pickLocalizedAuto(rec, "title", locale),
+    pickLocalizedAuto(rec, "excerpt", locale),
+    pickLocalizedAuto(rec, "content", locale).then((v) => v || page.content),
+  ]);
+
   return (
     <>
       <PageHeader
-        title={page.title}
-        subtitle={page.excerpt || undefined}
+        title={locTitle}
+        subtitle={locExcerpt || undefined}
         breadcrumb={[
           ...(page.menuGroup === "about"
-            ? [{ label: "درباره مرکز" }]
+            ? [{ label: T("footer.aboutCenter") }]
             : []),
-          { label: page.title },
+          { label: locTitle },
         ]}
         image={page.image}
       />
@@ -80,10 +91,16 @@ export default async function DynamicPage({
         <div className="bg-card rounded-3xl border border-border shadow-sm p-6 md:p-10">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6 pb-4 border-b border-border/60">
             <FileText className="h-4 w-4 text-gold" />
-            <span>آخرین به‌روزرسانی: {formatJalali(page.updatedAt)}</span>
+            <span>
+              {T("page.updated", "آخرین به‌روزرسانی")}: {formatDate(page.updatedAt, locale)}
+            </span>
             <span className="mx-1">•</span>
             <UserRound className="h-4 w-4" />
-            <span>{(page.views + 1).toLocaleString("fa-IR")} بازدید</span>
+            <span>
+              {locale === "fa"
+                ? `${(page.views + 1).toLocaleString("fa-IR")} ${T("post.views")}`
+                : `${(page.views + 1).toLocaleString(locale === "ar" ? "ar" : "en-US")} ${T("post.views")}`}
+            </span>
             <span className="ms-auto">
               <ReadAloud targetSelector="#tts-content" />
             </span>
@@ -92,7 +109,7 @@ export default async function DynamicPage({
           <div
             id="tts-content"
             className="rich-content"
-            dangerouslySetInnerHTML={{ __html: page.content }}
+            dangerouslySetInnerHTML={{ __html: locContent }}
           />
 
           {/* اعضا */}

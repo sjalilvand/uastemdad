@@ -272,3 +272,18 @@ model Event {
 
   @@index([date])
 }
+
+/** کش ترجمه آنلاین صفحات (fa → en/ar) */
+model TranslationCache {
+  id     String   @id @default(cuid())
+  hash   String
+  target String // en | ar
+  source String
+  result String
+  hits   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hash, target])
+  @@index([target])
+}

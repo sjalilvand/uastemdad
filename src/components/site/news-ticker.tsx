@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
-import { formatJalali } from "@/lib/jalali";
+import { getLocale, serverT } from "@/lib/server-i18n";
+import { formatDate } from "@/lib/jalali";
 
 export interface TickerItem {
   id: string;
@@ -13,8 +14,10 @@ export interface TickerItem {
  * زیرنویس متحرک (نوار خبری) — اسکرول خودکار آخرین اطلاعیه‌ها و اخبار
  * با توقف موقت هنگام هاور و احترام به تنظیم «کاهش حرکت»
  */
-export function NewsTicker({ items }: { items: TickerItem[] }) {
+export async function NewsTicker({ items }: { items: TickerItem[] }) {
   if (items.length === 0) return null;
+  const locale = await getLocale();
+  const T = serverT(locale);
 
   // محتوای دوبار تکرارشده برای حلقهٔ بی‌وقفه
   const loop = [...items, ...items];
@@ -23,14 +26,14 @@ export function NewsTicker({ items }: { items: TickerItem[] }) {
     <div
       className="ticker-wrap relative bg-card border-b border-border/60 overflow-hidden"
       role="marquee"
-      aria-label="نوار خبری متحرک"
+      aria-label={T("ticker.label")}
     >
       <div className="mx-auto max-w-7xl flex items-stretch">
         {/* برچسب ثابت */}
         <div className="shrink-0 emerald-gradient pattern-bg px-4 py-2 flex items-center gap-2">
           <Megaphone className="h-4 w-4 text-gold shrink-0" />
           <span className="text-white text-xs font-bold whitespace-nowrap">
-            اطلاعیه‌ها
+            {T("home.announcements")}
           </span>
         </div>
         {/* ریل متحرک */}
@@ -46,8 +49,8 @@ export function NewsTicker({ items }: { items: TickerItem[] }) {
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
                 <span className="font-semibold">{it.title}</span>
-                <span className="text-muted-foreground" dir="rtl">
-                  {formatJalali(it.date)}
+                <span className="text-muted-foreground">
+                  {formatDate(it.date, locale)}
                 </span>
               </Link>
             ))}

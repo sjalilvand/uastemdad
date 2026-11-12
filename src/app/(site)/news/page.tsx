@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { PostArchive } from "@/components/site/post-archive";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getLocale, serverT, localizePosts, localizeStrings } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export default async function NewsPage({
 }: {
   searchParams: Promise<{ page?: string; q?: string; cat?: string }>;
 }) {
+  const locale = await getLocale();
+  const T = serverT(locale);
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const q = (sp.q || "").trim();
@@ -36,7 +39,7 @@ export default async function NewsPage({
     ...(cat ? { category: { slug: cat } } : {}),
   };
 
-  const [posts, total, categories] = await Promise.all([
+  const [postsRaw, total, categoriesRaw] = await Promise.all([
     db.post.findMany({
       where,
       orderBy: { publishedAt: "desc" },
@@ -48,14 +51,23 @@ export default async function NewsPage({
     db.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 
+  const [posts, categoryNames] = await Promise.all([
+    localizePosts(postsRaw, locale),
+    localizeStrings(categoriesRaw.map((c) => c.name), locale),
+  ]);
+  const categories = categoriesRaw.map((c, i) => ({
+    ...c,
+    name: categoryNames[i] || c.name,
+  }));
+
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <>
       <PageHeader
-        title="اخبار مرکز"
-        subtitle="آخرین رویدادها، گزارش‌ها و اخبار آموزشی، پژوهشی و فرهنگی مرکز آموزش علمی–کاربردی کمیته امداد"
-        breadcrumb={[{ label: "اخبار مرکز" }]}
+        title={T("post.newsCenter")}
+        subtitle={T("home.newsSubtitle")}
+        breadcrumb={[{ label: T("post.newsCenter") }]}
       />
       <div className="mx-auto max-w-7xl px-4 py-10">
         {/* جستجو و فیلتر */}
@@ -65,7 +77,7 @@ export default async function NewsPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder="جستجو در اخبار…"
+              placeholder={T("header.searchPlaceholder")}
               className="w-full h-12 rounded-xl border border-input bg-card pr-11 pl-4 text-sm outline-none focus:ring-2 focus:ring-ring/40"
             />
           </form>
@@ -79,7 +91,7 @@ export default async function NewsPage({
                   : "bg-card border-border text-muted-foreground hover:text-primary hover:border-primary/40"
               )}
             >
-              همه
+              {T("post.newsAll", "همه")}
             </Link>
             {categories.map((c) => (
               <Link
