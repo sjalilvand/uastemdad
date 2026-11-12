@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  color String @default("#0B5D51")
+  posts Post[]
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String    @default("")
+  content     String    @default("")
+  coverImage  String?
+  type        String    @default("NEWS")
+  featured    Boolean   @default(false)
+  published   Boolean   @default(true)
+  views       Int       @default(0)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  publishedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([type, published, publishedAt])
+}
+
+model Page {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  content    String   @default("")
+  excerpt    String   @default("")
+  icon       String   @default("file-text")
+  image      String?
+  showInMenu Boolean  @default(true)
+  menuGroup  String   @default("about")
+  order      Int      @default(0)
+  published  Boolean  @default(true)
+  views      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @default("")
+  phone     String   @default("")
+  subject   String   @default("")
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model MenuItem {
+  id       String     @id @default(cuid())
+  label    String
+  url      String
+  parentId String?
+  parent   MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuTree")
+  location String     @default("main")
+  order    Int        @default(0)
+  isActive Boolean    @default(true)
+
+  @@index([location, isActive, order])
+}
+
+model RelatedLink {
+  id       String  @id @default(cuid())
+  title    String
+  url      String
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+model ExternalSystem {
+  id          String  @id @default(cuid())
+  title       String
+  url         String
+  description String  @default("")
+  icon        String  @default("monitor")
+  color       String  @default("#0B5D51")
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+}
+
+model Program {
+  id          String  @id @default(cuid())
+  title       String
+  degree      String  @default("کاردانی حرفه‌ای")
+  description String  @default("")
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   @default("آموزشی")
+  fileUrl     String   @default("")
+  description String  @default("")
+  createdAt   DateTime @default(now())
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  title     String
+  imageUrl  String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model TeamMember {
+  id       String  @id @default(cuid())
+  name     String
+  role     String  @default("")
+  group    String  @default("staff")
+  photo    String?
+  bio      String  @default("")
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+model Slide {
+  id       String  @id @default(cuid())
+  title    String
+  subtitle String  @default("")
+  imageUrl String
+  linkUrl  String  @default("#")
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
