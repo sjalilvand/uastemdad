@@ -3,6 +3,8 @@ import { Footer } from "@/components/site/footer";
 import { ChatWidget } from "@/components/site/chat-widget";
 import { VisitTracker } from "@/components/site/visit-tracker";
 import { PrefsFab } from "@/components/site/prefs-panel";
+import { NewsTicker } from "@/components/site/news-ticker";
+import { PwaRegister } from "@/components/site/pwa-register";
 import { getMenus } from "@/lib/menu";
 import { getSettings } from "@/lib/settings";
 import { db } from "@/lib/db";
@@ -14,10 +16,16 @@ export default async function SiteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [mainMenu, quickMenu, settings] = await Promise.all([
+  const [mainMenu, quickMenu, settings, tickerPosts] = await Promise.all([
     getMenus("main"),
     getMenus("quick"),
     getSettings(),
+    db.post.findMany({
+      where: { published: true, type: "ANNOUNCEMENT" },
+      orderBy: { publishedAt: "desc" },
+      take: 8,
+      select: { id: true, title: true, slug: true, publishedAt: true },
+    }),
   ]);
 
   const [systems, links, pages] = await Promise.all([
@@ -49,6 +57,16 @@ export default async function SiteLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <Header mainMenu={mainMenu} quickMenu={quickMenu} settings={settings} />
+      {settings.tickerEnabled !== "0" && (
+        <NewsTicker
+          items={tickerPosts.map((p) => ({
+            id: p.id,
+            title: p.title,
+            slug: p.slug,
+            date: p.publishedAt,
+          }))}
+        />
+      )}
       <main className="flex-1">{children}</main>
       <Footer
         settings={settings}
@@ -65,6 +83,7 @@ export default async function SiteLayout({
       <ChatWidget welcome={settings.chatWelcome} />
       <PrefsFab />
       <VisitTracker />
+      <PwaRegister />
     </div>
   );
 }

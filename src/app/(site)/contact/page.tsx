@@ -1,6 +1,7 @@
 import { getSettings, getPhones } from "@/lib/settings";
 import { PageHeader } from "@/components/site/page-header";
 import { ContactForm } from "@/components/site/contact-form";
+import { ContactMap } from "@/components/site/contact-map";
 import { MapPin, Phone, Mail, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export const metadata = { title: "تماس با ما" };
 export default async function ContactPage() {
   const settings = await getSettings();
   const phones = getPhones(settings);
+  const lat = Number(settings.mapLat) || 35.74041;
+  const lng = Number(settings.mapLng) || 51.49027;
 
   return (
     <>
@@ -97,7 +100,8 @@ export default async function ContactPage() {
         </div>
 
         {/* فرم */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-6">
+          <ContactMap lat={lat} lng={lng} title="مرکز آموزش علمی–کاربردی کمیته امداد بر روی نقشه" />
           <ContactForm />
         </div>
       </div>

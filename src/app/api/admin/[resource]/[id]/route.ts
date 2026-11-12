@@ -35,7 +35,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   }
   try {
     const body = await req.json();
-    const data = sanitizeBody(entry.def, body, { partial: true });
+    let data = sanitizeBody(entry.def, body, { partial: true });
+    if (entry.beforeSave) data = entry.beforeSave(data) as typeof data;
     const item = await entry.delegate.update({ where: { id }, data });
     return NextResponse.json({ item });
   } catch (e) {

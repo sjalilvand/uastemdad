@@ -9,7 +9,12 @@ import {
 export function getDelegate(resourceKey: string) {
   const map: Record<
     string,
-    { delegate: keyof typeof db; orderBy?: Record<string, "asc" | "desc">[] }
+    {
+      delegate: keyof typeof db;
+      orderBy?: Record<string, "asc" | "desc">[];
+      /** تبدیل داده پیش از ذخیره (مثلاً رشتهٔ تاریخ به Date) */
+      beforeSave?: (data: Record<string, unknown>) => Record<string, unknown>;
+    }
   > = {
     posts: { delegate: "post", orderBy: [{ publishedAt: "desc" }] },
     pages: { delegate: "page", orderBy: [{ order: "asc" }] },
@@ -26,12 +31,26 @@ export function getDelegate(resourceKey: string) {
       orderBy: [{ location: "asc" }, { order: "asc" }],
     },
     newsletter: { delegate: "newsletterSubscriber", orderBy: [{ createdAt: "desc" }] },
+    videos: { delegate: "video", orderBy: [{ order: "asc" }] },
+    faqs: { delegate: "faq", orderBy: [{ order: "asc" }] },
+    events: {
+      delegate: "event",
+      orderBy: [{ date: "desc" }],
+      beforeSave: (data) => {
+        if (typeof data.date === "string" && data.date.trim()) {
+          const d = new Date(data.date);
+          if (!Number.isNaN(d.getTime())) data.date = d;
+          else delete data.date;
+        }
+        return data;
+      },
+    },
   };
   const entry = map[resourceKey];
   if (!entry) return null;
   const def = getResource(resourceKey);
   if (!def) return null;
-  return { delegate: db[entry.delegate], orderBy: entry.orderBy, def };
+  return { delegate: db[entry.delegate], orderBy: entry.orderBy, def, beforeSave: entry.beforeSave };
 }
 
 export function slugify(text: string): string {

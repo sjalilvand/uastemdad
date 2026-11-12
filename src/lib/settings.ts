@@ -18,6 +18,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   statBooks: "35",
   statPrograms: "9",
   mapUrl: "https://www.google.com/maps?q=تهران+سی+متری+نیرو+هوایی",
+  mapLat: "35.74041",
+  mapLng: "51.49027",
+  tickerEnabled: "1",
   chatWelcome:
     "سلام! من دستیار هوشمند مرکز آموزش علمی–کاربردی کمیته امداد هستم. درباره اخبار مرکز، رشته‌های تحصیلی، سامانه‌ها، آدرس و تلفن‌های تماس می‌توانید از من بپرسید.",
   footerNote:

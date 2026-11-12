@@ -175,10 +175,10 @@
 }
 
 .gold-gradient {
-  background: linear-gradient(135deg, #c9a227 0%, #e6c35c 50%, #c9a227 100%);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-bright, #e6c35c) 50%, var(--gold) 100%);
 }
 .emerald-gradient {
-  background: linear-gradient(135deg, #0b5d51 0%, #147a68 55%, #0b5d51 100%);
+  background: linear-gradient(135deg, var(--grad-a, #0b5d51) 0%, var(--grad-b, #147a68) 55%, var(--grad-a, #0b5d51) 100%);
 }
 
 /* ---- محتوای غنی (HTML ذخیره‌شده در ویرایشگر) ---- */
@@ -376,6 +376,170 @@ html[data-lines="wide"] body {
 }
 html[data-lines="wide"] .rich-content {
   line-height: 2.5;
+}
+
+/* ================================================================ */
+/* تم‌های رنگی — انتخاب از پنل شخصی‌سازی                             */
+/* ================================================================ */
+
+/* ---- تم نعنایی ---- */
+html[data-theme="mint"] {
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --secondary: #ccfbf1;
+  --secondary-foreground: #115e59;
+  --gold: #d9a514;
+  --gold-bright: #ecc94b;
+  --grad-a: #0d9488;
+  --grad-b: #2dd4bf;
+  --ring: #0d9488;
+  --chart-1: #0d9488;
+  --chart-2: #d9a514;
+  --chart-3: #14b8a6;
+  --chart-4: #5eead4;
+  --chart-5: #a16207;
+}
+html:not(.dark)[data-theme="mint"] {
+  --background: #f0fdfa;
+  --muted: #e0f5f0;
+}
+
+/* ---- تم اقیانوسی ---- */
+html[data-theme="ocean"] {
+  --primary: #0369a1;
+  --primary-foreground: #ffffff;
+  --secondary: #e0f2fe;
+  --secondary-foreground: #075985;
+  --gold: #d4a72c;
+  --gold-bright: #e9c46a;
+  --grad-a: #075985;
+  --grad-b: #0ea5e9;
+  --ring: #0369a1;
+  --chart-1: #0369a1;
+  --chart-2: #d4a72c;
+  --chart-3: #0284c7;
+  --chart-4: #7dd3fc;
+  --chart-5: #a16207;
+}
+html:not(.dark)[data-theme="ocean"] {
+  --background: #f0f9ff;
+  --muted: #e3f1fb;
+}
+
+/* ---- تم غروب ---- */
+html[data-theme="sunset"] {
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --secondary: #ffedd5;
+  --secondary-foreground: #7c2d12;
+  --gold: #eab308;
+  --gold-bright: #facc15;
+  --grad-a: #c2410c;
+  --grad-b: #f97316;
+  --ring: #c2410c;
+  --chart-1: #c2410c;
+  --chart-2: #eab308;
+  --chart-3: #ea580c;
+  --chart-4: #fdba74;
+  --chart-5: #a16207;
+}
+html:not(.dark)[data-theme="sunset"] {
+  --background: #fff7ed;
+  --muted: #f7ead9;
+}
+
+/* ---- تم بنفش سلطنتی ---- */
+html[data-theme="royal"] {
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+  --secondary: #ede9fe;
+  --secondary-foreground: #4c1d95;
+  --gold: #c9a227;
+  --gold-bright: #e6c35c;
+  --grad-a: #5b21b6;
+  --grad-b: #8b5cf6;
+  --ring: #6d28d9;
+  --chart-1: #6d28d9;
+  --chart-2: #c9a227;
+  --chart-3: #7c3aed;
+  --chart-4: #c4b5fd;
+  --chart-5: #8a6d1f;
+}
+html:not(.dark)[data-theme="royal"] {
+  --background: #faf5ff;
+  --muted: #efe7fa;
+}
+
+/* ---- تم سرخ گلگون ---- */
+html[data-theme="rose"] {
+  --primary: #be123c;
+  --primary-foreground: #ffffff;
+  --secondary: #ffe4e6;
+  --secondary-foreground: #881337;
+  --gold: #c9a227;
+  --gold-bright: #e6c35c;
+  --grad-a: #9f1239;
+  --grad-b: #f43f5e;
+  --ring: #be123c;
+  --chart-1: #be123c;
+  --chart-2: #c9a227;
+  --chart-3: #e11d48;
+  --chart-4: #fda4af;
+  --chart-5: #8a6d1f;
+}
+html:not(.dark)[data-theme="rose"] {
+  --background: #fff1f2;
+  --muted: #f5e5e7;
+}
+
+/* ---- تم رنگین‌کمان (گرادیان متحرک چندرنگ) ---- */
+html[data-theme="rainbow"] {
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+  --gold: #f59e0b;
+  --gold-bright: #fbbf24;
+  --ring: #7c3aed;
+  --chart-1: #ef4444;
+  --chart-2: #f59e0b;
+  --chart-3: #22c55e;
+  --chart-4: #3b82f6;
+  --chart-5: #8b5cf6;
+}
+html[data-theme="rainbow"] .emerald-gradient {
+  background: linear-gradient(120deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #d946ef, #ef4444);
+  background-size: 400% 400%;
+  animation: rainbowShift 10s linear infinite;
+}
+html[data-theme="rainbow"] .section-title-bar::after {
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e, #06b6d4, #8b5cf6);
+}
+html[data-theme="rainbow"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ef4444, #f59e0b, #22c55e, #06b6d4, #8b5cf6);
+}
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ---- زیرنویس متحرک (نوار خبری) ---- */
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: tickerScroll 45s linear infinite;
+}
+.ticker-wrap:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+/* ---- هایلایت خواندن متن (TTS) ---- */
+.tts-active {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 35%, transparent);
+  border-radius: 0.75rem;
 }
 
 /* ---- سازگاری جهت LTR (زبان انگلیسی) ---- */

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { formatJalali } from "@/lib/jalali";
+import { localAnswer, buildKnowledgeItems } from "@/lib/chat-local";
 import ZAI from "z-ai-web-dev-sdk";
 
 export const dynamic = "force-dynamic";
@@ -21,93 +21,70 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** ساخت بستر دانش از روی دیتابیس سامانه */
+/** ساخت بستر دانش از روی دیتابیس سامانه (برای سرویس هوش مصنوعی) */
 async function buildKnowledge(): Promise<string> {
-  const [settings, news, announcements, programs, systems, pages, documents, links] =
-    await Promise.all([
-      getSettings(),
-      db.post.findMany({
-        where: { published: true, type: "NEWS" },
-        orderBy: { publishedAt: "desc" },
-        take: 12,
-      }),
-      db.post.findMany({
-        where: { published: true, type: "ANNOUNCEMENT" },
-        orderBy: { publishedAt: "desc" },
-        take: 6,
-      }),
-      db.program.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-      db.externalSystem.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-      db.page.findMany({ where: { published: true }, orderBy: { order: "asc" } }),
-      db.document.findMany({ take: 20 }),
-      db.relatedLink.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-    ]);
+  const { items, basics } = await buildKnowledgeItems();
 
   const lines: string[] = [];
   lines.push("== اطلاعات پایه ==");
-  lines.push(`نام سایت: ${settings.siteName}`);
-  lines.push(`ریاست مرکز: ${settings.presidentName}`);
-  lines.push(`آدرس: ${settings.address}`);
-  lines.push(`تلفن‌ها: ${settings.phones}`);
-  lines.push(`ایمیل: ${settings.email}`);
-  lines.push(`درباره مرکز: ${settings.aboutText}`);
-  lines.push(
-    `آمار: ${settings.statStudents} دانشجو، ${settings.statFaculty} عضو هیئت علمی، ${settings.statPrograms} رشته تحصیلی، ${settings.statBooks} جلد کتاب تألیفی`
-  );
+  lines.push(`نام سایت: ${basics.siteName}`);
+  lines.push(`ریاست مرکز: ${basics.president}`);
+  lines.push(`آدرس: ${basics.address}`);
+  lines.push(`تلفن‌ها: ${basics.phones}`);
+  lines.push(`ایمیل: ${basics.email}`);
+  lines.push(`درباره مرکز: ${basics.aboutText}`);
+  lines.push(`آمار: ${basics.stats}`);
 
-  if (programs.length) {
-    lines.push("\n== رشته‌های تحصیلی ==");
-    for (const p of programs) {
-      lines.push(`- ${p.title} (${p.degree}): ${p.description}`);
-    }
+  const groups: Record<string, typeof items> = {};
+  for (const it of items) {
+    const g = it.extra || "سایر";
+    (groups[g] ||= []).push(it);
   }
-
-  if (systems.length) {
-    lines.push("\n== سامانه‌ها ==");
-    for (const s of systems) {
-      lines.push(`- ${s.title}: ${s.description} | آدرس: ${s.url}`);
+  for (const [g, list] of Object.entries(groups)) {
+    lines.push(`\n== ${g} ==`);
+    for (const it of list.slice(0, 14)) {
+      lines.push(`- «${it.title}»: ${it.text.replace(/\s+/g, " ").slice(0, 280)} | ${it.link}`);
     }
-  }
-
-  if (pages.length) {
-    lines.push("\n== صفحات سایت ==");
-    for (const p of pages) {
-      const plain = p.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-      lines.push(`- «${p.title}» (آدرس: /p/${p.slug}): ${plain.slice(0, 600)}`);
-    }
-  }
-
-  if (news.length) {
-    lines.push("\n== آخرین اخبار مرکز ==");
-    for (const n of news) {
-      lines.push(
-        `- «${n.title}» — ${formatJalali(n.publishedAt)} — ${n.excerpt.replace(/\s+/g, " ").slice(0, 300)}`
-      );
-    }
-  }
-
-  if (announcements.length) {
-    lines.push("\n== اطلاعیه‌ها ==");
-    for (const a of announcements) {
-      lines.push(`- «${a.title}» — ${formatJalali(a.publishedAt)} — ${a.excerpt.replace(/\s+/g, " ").slice(0, 300)}`);
-    }
-  }
-
-  if (documents.length) {
-    lines.push("\n== فرم‌ها و آیین‌نامه‌ها ==");
-    const cats = [...new Set(documents.map((d) => d.category))];
-    lines.push(`گروه‌ها: ${cats.join("، ")}`);
-    for (const d of documents.slice(0, 10)) {
-      lines.push(`- ${d.title} (گروه: ${d.category})${d.fileUrl ? ` | فایل: ${d.fileUrl}` : ""}`);
-    }
-  }
-
-  if (links.length) {
-    lines.push("\n== پیوندهای مرتبط ==");
-    lines.push(links.map((l) => l.title).join("، "));
   }
 
   return lines.join("\n");
+}
+
+/** فراخوانی سرویس هوش مصنوعی با مهلت زمانی — در خطا null برمی‌گردد */
+async function callAI(
+  messages: { role: "assistant" | "user"; content: string }[]
+): Promise<string | null> {
+  try {
+    const zai = await Promise.race([
+      ZAI.create(),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("init timeout")), 8000)
+      ),
+    ]);
+    const completion = await Promise.race([
+      zai.chat.completions.create({
+        messages,
+        thinking: { type: "disabled" },
+      }),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("ai timeout")), 25000)
+      ),
+    ]);
+
+    const reply =
+      (
+        completion as {
+          choices?: { message?: { content?: string } }[];
+        }
+      )?.choices?.[0]?.message?.content?.trim();
+    return reply || null;
+  } catch (e) {
+    console.error(
+      "AI unavailable, using local answer:",
+      e instanceof Error ? e.message : e
+    );
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -121,72 +98,84 @@ export async function POST(req: NextRequest) {
     }
 
     // ذخیره پیام کاربر
-    await db.chatMessage.create({
-      data: { sessionId, role: "user", content: message },
-    });
+    await db.chatMessage
+      .create({ data: { sessionId, role: "user", content: message } })
+      .catch(() => null);
 
     const [knowledge, history] = await Promise.all([
-      buildKnowledge(),
-      db.chatMessage.findMany({
-        where: { sessionId },
-        orderBy: { createdAt: "desc" },
-        take: 11,
-      }),
+      buildKnowledge().catch(() => ""),
+      db.chatMessage
+        .findMany({ where: { sessionId }, orderBy: { createdAt: "desc" }, take: 11 })
+        .catch(() => []),
     ]);
 
-    const languageRule =
-      locale === "en"
-        ? "2) Always answer in English, polite, short and practical. Use bullets and numbering for readability."
-        : locale === "ar"
-          ? "2) أجب دائماً باللغة العربية، بأدب وإيجاز وعملية. استخدم النقاط والترقيم لسهولة القراءة."
-          : "2) همیشه به زبان فارسی، محترمانه، کوتاه و کاربردی پاسخ بده. از بولت و شماره‌گذاری برای خوانایی استفاده کن.";
+    let reply: string | null = null;
 
-    const systemPrompt = `تو «دستیار هوشمند» سامانه رسمی ${"مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره)"} هستی.
+    if (knowledge) {
+      const languageRule =
+        locale === "en"
+          ? "2) Always answer in English, polite, short and practical. Use bullets and numbering for readability."
+          : locale === "ar"
+            ? "2) أجب دائماً باللغة العربية، بأدب وإيجاز وعملية. استخدم النقاط والترقيم لسهولة القراءة."
+            : "2) همیشه به زبان فارسی، محترمانه، کوتاه و کاربردی پاسخ بده. از بولت و شماره‌گذاری برای خوانایی استفاده کن.";
+
+      const systemPrompt = `تو «دستیار هوشمند» سامانه رسمی مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره) هستی.
 قواعد پاسخ‌دهی:
 1) فقط بر اساس «دانش سامانه» زیر پاسخ بده و اطلاعات خلاف آن نساز. اگر پاسخ در دانش موجود نبود، صادقانه بگو اطلاعات دقیقی نداری و کاربر را به تماس تلفنی یا فرم ارتباط با مرکز راهنمایی کن.
 ${languageRule}
-3) برای اخبار و اطلاعیه‌ها فقط از فهرست «آخرین اخبار» و «اطلاعیه‌ها» استفاده کن و تاریخ‌ها را همان‌طور که هستند بگو. اگر برای اخبار نسخهٔ انگلیسی یا عربی (فیلدهای En/Ar) در داده بود، در پاسخ انگلیسی/عربی از همان نسخه استفاده کن.
-4) سؤالات عمومی و غیرمرتبط (مثلاً علوم عمومی) را کوتاه و مؤدبانه بی‌پاسخ بگذار و کاربر را به موضوعات سامانه برگردان.
-5) اگر کاربر پرسید چطور در رشته‌ای ثبت‌نام کند، زمان‌های ثبت‌نام اطلاعیه ثبت‌نام را بگو و پیشنهاد کن با مرکز تماس بگیرد. سامانه «عضویت دانشجویان» در آدرس /membership برای ثبت‌نام و ورود اعضا در دسترس است و خبرنامه سایت در پاورقی فعال است.
+3) برای اخبار و اطلاعیه‌ها فقط از فهرست داده‌شده استفاده کن و تاریخ‌ها را همان‌طور که هستند بگو.
+4) سؤالات عمومی و غیرمرتبط را کوتاه و مؤدبانه بی‌پاسخ بگذار و کاربر را به موضوعات سامانه برگردان.
+5) سامانه «عضویت دانشجویان» در آدرس /membership برای ثبت‌نام و ورود اعضا در دسترس است و خبرنامه سایت در پاورقی فعال است.
 6) پاسخ‌های خودت را بیش از ۱۵۰ کلمه نکن مگر اینکه کاربر جزئیات بخواهد.
 
 == دانش سامانه ==
 ${knowledge}`;
 
-    // ترتیب صحیح تاریخچه (قدیمی به جدید) بدون پیام فعلی تکراری
-    const orderedHistory = [...history].reverse();
-    const messages: { role: "assistant" | "user"; content: string }[] = [
-      { role: "assistant", content: systemPrompt },
-    ];
-    for (const h of orderedHistory.slice(0, -1)) {
-      if (h.role === "user" || h.role === "assistant") {
-        messages.push({ role: h.role, content: h.content });
+      const orderedHistory = [...history].reverse();
+      const messages: { role: "assistant" | "user"; content: string }[] = [
+        { role: "assistant", content: systemPrompt },
+      ];
+      for (const h of orderedHistory.slice(0, -1)) {
+        if (h.role === "user" || h.role === "assistant") {
+          messages.push({ role: h.role, content: h.content });
+        }
       }
+      messages.push({ role: "user", content: message });
+
+      reply = await callAI(messages);
     }
-    messages.push({ role: "user", content: message });
 
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      messages,
-      thinking: { type: "disabled" },
-    });
-    const reply =
-      completion.choices[0]?.message?.content?.trim() ||
-      (locale === "en"
-        ? "Answering is not available right now; please try again later or contact the center."
-        : locale === "ar"
-          ? "الإجابة غير متاحة حالياً؛ يرجى المحاولة لاحقاً أو التواصل مع المركز."
-          : "در حال حاضر امکان پاسخ‌دهی نیست؛ لطفاً بعداً تلاش کنید یا با مرکز تماس بگیرید.");
+    let source: "ai" | "local" = "ai";
+    if (!reply) {
+      source = "local";
+      reply = await localAnswer(message, locale);
+    }
 
-    await db.chatMessage.create({
-      data: { sessionId, role: "assistant", content: reply },
-    });
+    await db.chatMessage
+      .create({ data: { sessionId, role: "assistant", content: reply } })
+      .catch(() => null);
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, source });
   } catch (e) {
     console.error("chat error", e);
+    // حتی در خطای کلی، پاسخ محلی تلاش می‌شود تا کاربر هرگز پیام خطا نبیند
+    try {
+      const body = await req.json().catch(() => ({}));
+      const message = String(body.message || "").trim();
+      const locale = ["fa", "en", "ar"].includes(body.locale) ? body.locale : "fa";
+      if (message) {
+        const reply = await localAnswer(message, locale);
+        return NextResponse.json({ reply, source: "local" });
+      }
+    } catch {
+      /* ignore */
+    }
     return NextResponse.json(
-      { reply: "خطا در پردازش درخواست؛ لطفاً دوباره تلاش کنید." },
+      {
+        reply:
+          "در حال حاضر امکان پاسخ‌دهی نیست؛ لطفاً بعداً تلاش کنید یا با مرکز تماس بگیرید.",
+        source: "local",
+      },
       { status: 200 }
     );
   }

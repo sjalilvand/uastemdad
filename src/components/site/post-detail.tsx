@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { PostCard, type PostCardData } from "./post-card";
 import { formatJalali } from "@/lib/jalali";
 import { SectionHeading } from "./section-heading";
+import { ReadAloud } from "./read-aloud";
 import { pickLocalized, type Locale } from "@/lib/i18n-dictionaries";
 import {
   CalendarDays,
@@ -96,6 +97,9 @@ export async function PostDetail({ slug }: { slug: string }) {
                 <Eye className="h-3.5 w-3.5" />
                 {(post.views + 1).toLocaleString("fa-IR")} بازدید
               </span>
+              <span className="ms-auto">
+                <ReadAloud targetSelector="#tts-content" />
+              </span>
             </div>
 
             {locExcerpt && (
@@ -105,6 +109,7 @@ export async function PostDetail({ slug }: { slug: string }) {
             )}
 
             <div
+              id="tts-content"
               className="rich-content mt-8"
               dangerouslySetInnerHTML={{ __html: locContent }}
             />

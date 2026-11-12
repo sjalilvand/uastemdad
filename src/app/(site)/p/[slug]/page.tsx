@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/site/page-header";
 import { formatJalali } from "@/lib/jalali";
+import { ReadAloud } from "@/components/site/read-aloud";
 import { FileText, UserRound, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -83,9 +84,13 @@ export default async function DynamicPage({
             <span className="mx-1">•</span>
             <UserRound className="h-4 w-4" />
             <span>{(page.views + 1).toLocaleString("fa-IR")} بازدید</span>
+            <span className="ms-auto">
+              <ReadAloud targetSelector="#tts-content" />
+            </span>
           </div>
 
           <div
+            id="tts-content"
             className="rich-content"
             dangerouslySetInnerHTML={{ __html: page.content }}
           />

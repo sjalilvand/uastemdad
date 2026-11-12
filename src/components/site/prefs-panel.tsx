@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { usePrefs, type BgChoice, type FontChoice, type SizeChoice } from "@/lib/prefs";
+import { usePrefs, type BgChoice, type FontChoice, type SizeChoice, type ThemeChoice } from "@/lib/prefs";
 import { LOCALES, type Locale } from "@/lib/i18n-dictionaries";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ import {
   Globe,
   Link2,
   Moon,
+  Paintbrush,
   Palette,
   RotateCcw,
   Rows3,
@@ -84,6 +85,21 @@ const BGS: { value: BgChoice; color: string }[] = [
   { value: "mint", color: "#eef7f1" },
   { value: "sky", color: "#edf4f9" },
   { value: "sand", color: "#f7f1e8" },
+];
+
+/** تم‌های رنگی سایت */
+const THEMES: { value: ThemeChoice; from: string; to: string }[] = [
+  { value: "default", from: "#0b5d51", to: "#147a68" },
+  { value: "mint", from: "#0d9488", to: "#2dd4bf" },
+  { value: "ocean", from: "#075985", to: "#0ea5e9" },
+  { value: "sunset", from: "#c2410c", to: "#f97316" },
+  { value: "royal", from: "#5b21b6", to: "#8b5cf6" },
+  { value: "rose", from: "#9f1239", to: "#f43f5e" },
+  {
+    value: "rainbow",
+    from: "#ef4444",
+    to: "#8b5cf6",
+  },
 ];
 
 export function PrefsPanel({
@@ -169,8 +185,41 @@ export function PrefsPanel({
             </div>
           </Row>
 
+          {/* تم رنگی */}
+          <Row icon={Palette} label={t("prefs.theme")}>
+            <div className="flex flex-wrap gap-1.5 justify-end max-w-[60%]">
+              {THEMES.map((th) => (
+                <button
+                  key={th.value}
+                  type="button"
+                  aria-label={t(`prefs.theme.${th.value}`)}
+                  title={t(`prefs.theme.${th.value}`)}
+                  onClick={() => set({ theme: th.value })}
+                  className={cn(
+                    "h-8 w-8 rounded-full border-2 transition-all cursor-pointer relative",
+                    prefs.theme === th.value
+                      ? "border-foreground scale-110 shadow"
+                      : "border-border hover:scale-105"
+                  )}
+                  style={
+                    th.value === "rainbow"
+                      ? {
+                          background:
+                            "conic-gradient(#ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ef4444)",
+                        }
+                      : { background: `linear-gradient(135deg, ${th.from}, ${th.to})` }
+                  }
+                >
+                  {prefs.theme === th.value && (
+                    <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </Row>
+
           {/* رنگ پس‌زمینه */}
-          <Row icon={Palette} label={t("prefs.bg")}>
+          <Row icon={Paintbrush} label={t("prefs.bg")}>
             <div className="flex gap-2">
               {BGS.map((b) => (
                 <button

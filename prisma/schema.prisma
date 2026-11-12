@@ -215,6 +215,9 @@ model Visit {
   os        String   @default("")
   device    String   @default("desktop")
   referrer  String   @default("")
+  ip        String   @default("")
+  country   String   @default("")
+  city      String   @default("")
   createdAt DateTime @default(now())
 
   @@index([createdAt])
@@ -230,4 +233,42 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@index([sessionId, createdAt])
+}
+
+/** ویدیوها و تیزرهای رسانه‌ای */
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  url         String   @default("")
+  kind        String   @default("APARAT") // APARAT | YOUTUBE | FILE
+  thumbnail   String?
+  category    String   @default("عمومی")
+  views       Int      @default(0)
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+/** پرسش‌های متداول */
+model Faq {
+  id       String  @id @default(cuid())
+  question String
+  answer   String
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+/** رویدادها و تقویم آموزشی */
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  location    String   @default("")
+  date        DateTime
+  category    String   @default("آموزشی")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([date])
 }

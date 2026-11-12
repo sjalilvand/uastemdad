@@ -28,6 +28,10 @@ import {
   Monitor,
   Smartphone,
   Tablet,
+  MapPin,
+  Timer,
+  Network,
+  ServerCog,
 } from "lucide-react";
 
 interface StatsData {
@@ -37,11 +41,16 @@ interface StatsData {
   total: number;
   uniques: number;
   online: number;
+  avgPerPage: number;
+  uptimeSec: number;
+  server: { platform: string; nodeVersion: string; cpus: number; totalMemGB: number };
   dailySeries: { date: string; count: number }[];
   topPages: { path: string; count: number }[];
   browsers: { name: string; count: number }[];
   oses: { name: string; count: number }[];
   devices: { name: string; count: number }[];
+  countries: { name: string; count: number }[];
+  cities: { name: string; count: number }[];
   recent: {
     id: string;
     path: string;
@@ -49,6 +58,9 @@ interface StatsData {
     os: string;
     device: string;
     referrer: string;
+    ip: string;
+    country: string;
+    city: string;
     createdAt: string;
   }[];
 }
@@ -60,6 +72,17 @@ const DEVICE_META: Record<string, { label: string; icon: React.ComponentType<{ c
 };
 
 const PIE_COLORS = ["#0b5d51", "#c9a227", "#1b7f6e", "#7fb69a", "#8a6d1f", "#2e7d32"];
+
+/** قالب‌بندی مدت کارکرد سرور */
+function formatUptime(sec: number): string {
+  if (!sec || sec < 0) return "—";
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${d} روز و ${h} ساعت`;
+  if (h > 0) return `${h} ساعت و ${m} دقیقه`;
+  return `${m} دقیقه`;
+}
 
 function StatCard({
   icon: Icon,
@@ -141,7 +164,7 @@ export function AdminStatsPage() {
           آمار بازدید و مشخصات بازدیدکنندگان
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          تحلیل ترافیک سایت: بازدید روزانه، صفحات پربازدید، مرورگرها و دستگاه‌ها
+          تحلیل ترافیک سایت: بازدید روزانه، صفحات پربازدید، مرورگرها، موقعیت جغرافیایی و دستگاه‌ها
         </p>
       </div>
 
@@ -155,6 +178,18 @@ export function AdminStatsPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={CalendarDays} label="۳۰ روز اخیر" value={n(data.month)} />
         <StatCard icon={Globe} label="کاربران آنلاین (۵ دقیقه اخیر)" value={n(data.online)} />
+        <StatCard
+          icon={Network}
+          label="میانگین بازدید هر کاربر"
+          value={n(data.avgPerPage)}
+          hint="تعداد صفحات به ازای هر بازدیدکننده"
+        />
+        <StatCard
+          icon={Timer}
+          label="مدت کارکرد سرور"
+          value={formatUptime(data.uptimeSec)}
+          hint={`${data.server?.platform || ""} — Node ${data.server?.nodeVersion || ""}`}
+        />
       </div>
 
       {/* نمودار روند روزانه */}
@@ -217,6 +252,52 @@ export function AdminStatsPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* موقعیت جغرافیایی بازدیدکنندگان */}
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="font-extrabold text-sm mb-4 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-gold" />
+            کشور و شهر بازدیدکنندگان
+          </h3>
+          {data.countries.length === 0 && data.cities.length === 0 ? (
+            <p className="text-xs text-muted-foreground leading-6">
+              هنوز دادهٔ جغرافیایی ثبت نشده است. موقعیت بازدیدکنندگان جدید به‌صورت خودکار ثبت می‌شود.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <div className="text-[11px] font-bold text-muted-foreground mb-2">کشورها</div>
+                <div className="space-y-2">
+                  {data.countries.slice(0, 5).map((c) => (
+                    <div key={c.name} className="flex items-center justify-between text-xs">
+                      <span className="font-semibold">{c.name}</span>
+                      <span className="tabular-fa text-muted-foreground">{n(c.count)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {data.cities.length > 0 && (
+                <div className="pt-3 border-t border-border/60">
+                  <div className="text-[11px] font-bold text-muted-foreground mb-2">شهرها</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.cities.slice(0, 6).map((c) => (
+                      <span
+                        key={c.name}
+                        className="rounded-full bg-secondary text-primary text-[10px] font-bold px-2.5 py-1"
+                      >
+                        {c.name} · {n(c.count)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-4 pt-3 border-t border-border/60 text-[10px] text-muted-foreground leading-5">
+            <ServerCog className="inline h-3 w-3 ml-0.5 -mt-0.5" />
+            سرور: {data.server?.cpus || "?"} هسته CPU — {data.server?.totalMemGB || "?"} گیگابایت رم
           </div>
         </div>
 
@@ -294,10 +375,12 @@ export function AdminStatsPage() {
       {/* آخرین بازدیدها */}
       <div className="rounded-2xl border border-border bg-card p-5 overflow-x-auto">
         <h3 className="font-extrabold text-sm mb-4">آخرین بازدیدها</h3>
-        <table className="w-full text-xs min-w-[640px]">
+        <table className="w-full text-xs min-w-[760px]">
           <thead>
             <tr className="text-muted-foreground border-b border-border">
               <th className="text-right font-semibold py-2.5 px-2">صفحه</th>
+              <th className="text-right font-semibold py-2.5 px-2">IP</th>
+              <th className="text-right font-semibold py-2.5 px-2">موقعیت</th>
               <th className="text-right font-semibold py-2.5 px-2">مرورگر</th>
               <th className="text-right font-semibold py-2.5 px-2">سیستم‌عامل</th>
               <th className="text-right font-semibold py-2.5 px-2">دستگاه</th>
@@ -312,6 +395,14 @@ export function AdminStatsPage() {
                 <tr key={v.id} className="border-b border-border/40 hover:bg-muted/40">
                   <td className="py-2.5 px-2 font-semibold" dir="ltr">
                     {v.path}
+                  </td>
+                  <td className="py-2.5 px-2 tabular-fa" dir="ltr">
+                    {v.ip || "—"}
+                  </td>
+                  <td className="py-2.5 px-2 whitespace-nowrap">
+                    {v.country || v.city
+                      ? [v.city, v.country].filter(Boolean).join(" — ")
+                      : "—"}
                   </td>
                   <td className="py-2.5 px-2">{v.browser}</td>
                   <td className="py-2.5 px-2">{v.os}</td>

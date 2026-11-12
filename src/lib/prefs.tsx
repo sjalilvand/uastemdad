@@ -20,12 +20,21 @@ export type SizeChoice = "sm" | "md" | "lg" | "xl";
 export type BgChoice = "default" | "cream" | "mint" | "sky" | "sand";
 export type ContrastChoice = "normal" | "high";
 export type LinesChoice = "normal" | "wide";
+export type ThemeChoice =
+  | "default"
+  | "mint"
+  | "ocean"
+  | "sunset"
+  | "royal"
+  | "rose"
+  | "rainbow";
 
 export interface Prefs {
   locale: Locale;
   font: FontChoice;
   size: SizeChoice;
   bg: BgChoice;
+  theme: ThemeChoice;
   contrast: ContrastChoice;
   underline: boolean;
   reduceMotion: boolean;
@@ -37,6 +46,7 @@ export const DEFAULT_PREFS: Prefs = {
   font: "vazirmatn",
   size: "md",
   bg: "default",
+  theme: "default",
   contrast: "normal",
   underline: false,
   reduceMotion: false,
@@ -58,6 +68,7 @@ export function applyPrefs(prefs: Prefs) {
   el.dataset.font = prefs.font;
   el.dataset.size = prefs.size;
   el.dataset.bg = prefs.bg;
+  el.dataset.theme = prefs.theme;
   el.dataset.contrast = prefs.contrast;
   el.dataset.links = prefs.underline ? "on" : "off";
   el.dataset.motion = prefs.reduceMotion ? "off" : "on";
@@ -88,6 +99,7 @@ d.dir=(p.locale==="en")?"ltr":"rtl";
 d.dataset.font=p.font||"vazirmatn";
 d.dataset.size=p.size||"md";
 d.dataset.bg=p.bg||"default";
+d.dataset.theme=p.theme||"default";
 d.dataset.contrast=p.contrast||"normal";
 d.dataset.links=p.underline?"on":"off";
 d.dataset.motion=p.reduceMotion?"off":"on";

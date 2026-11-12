@@ -3,6 +3,82 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+/** کش جست‌وجوی جغرافیایی IP (۱ روز) */
+const geoCache = new Map<string, { country: string; city: string; at: number }>();
+const GEO_TTL = 24 * 3600 * 1000;
+
+/** آیا IP خصوصی/لوکال است؟ */
+function isPrivateIp(ip: string): boolean {
+  return (
+    !ip ||
+    ip === "::1" ||
+    ip.startsWith("127.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("172.16.") ||
+    ip.startsWith("172.17.") ||
+    ip.startsWith("172.18.") ||
+    ip.startsWith("172.19.") ||
+    ip.startsWith("172.2") ||
+    ip.startsWith("172.30.") ||
+    ip.startsWith("172.31.") ||
+    ip.startsWith("169.254.") ||
+    ip.startsWith("fc") ||
+    ip.startsWith("fd") ||
+    ip.startsWith("fe80")
+  );
+}
+
+/** استخراج IP واقعی کاربر از هدرها */
+function extractIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) {
+    const first = fwd.split(",")[0].trim();
+    if (first) return first;
+  }
+  return (
+    req.headers.get("x-real-ip") ||
+    req.headers.get("cf-connecting-ip") ||
+    ""
+  );
+}
+
+/** جست‌وجوی کشور و شهر از سرویس رایگان ip-api (با مهلت کوتاه و کش) */
+async function geoLookup(ip: string): Promise<{ country: string; city: string }> {
+  if (!ip || isPrivateIp(ip)) return { country: "شبکه محلی", city: "" };
+  const hit = geoCache.get(ip);
+  if (hit && Date.now() - hit.at < GEO_TTL) {
+    return { country: hit.country, city: hit.city };
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(
+      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city&lang=fa`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    const data = (await res.json()) as {
+      status?: string;
+      country?: string;
+      city?: string;
+    };
+    const out =
+      data.status === "success"
+        ? { country: data.country || "", city: data.city || "" }
+        : { country: "", city: "" };
+    geoCache.set(ip, { ...out, at: Date.now() });
+    // محدودسازی اندازهٔ کش
+    if (geoCache.size > 5000) {
+      const firstKey = geoCache.keys().next().value;
+      if (firstKey) geoCache.delete(firstKey);
+    }
+    return out;
+  } catch {
+    return { country: "", city: "" };
+  }
+}
+
 /** تشخیص مرورگر و سیستم‌عامل از User-Agent */
 function parseUA(ua: string): { browser: string; os: string; device: string } {
   const s = ua || "";
@@ -55,6 +131,9 @@ export async function POST(req: NextRequest) {
       referrer = "";
     }
 
+    const ip = extractIp(req);
+    const { country, city } = await geoLookup(ip);
+
     await db.visit.create({
       data: {
         visitorId,
@@ -64,6 +143,9 @@ export async function POST(req: NextRequest) {
         os,
         device,
         referrer,
+        ip: ip.slice(0, 60),
+        country: country.slice(0, 60),
+        city: city.slice(0, 60),
       },
     });
 

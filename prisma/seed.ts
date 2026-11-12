@@ -7,6 +7,16 @@ function jdate(y: number, m: number, d: number, h = 8, min = 30): Date {
 }
 
 async function main() {
+  /* حالت ارتقا: اگر سامانه قبلاً نصب شده باشد، داده‌های کاربر پاک نمی‌شود؛
+     فقط تنظیمات جدید و منوهای جدید اضافه و جدول‌های خالی نمونه‌گذاری می‌شوند. */
+  const userCount = await db.user.count();
+  if (userCount > 0 && process.env.SEED_FORCE !== "1") {
+    console.log("↩ نصب قبلی شناسایی شد — حالت ارتقا (داده‌ها حفظ می‌شوند)");
+    await upgradeExisting();
+    console.log("✅ ارتقا کامل شد");
+    return;
+  }
+
   console.log("→ پاک‌سازی داده‌های قبلی");
   await db.chatMessage.deleteMany();
   await db.contactMessage.deleteMany();
@@ -23,6 +33,9 @@ async function main() {
   await db.category.deleteMany();
   await db.setting.deleteMany();
   await db.user.deleteMany();
+  await db.video.deleteMany();
+  await db.faq.deleteMany();
+  await db.event.deleteMany();
 
   console.log("→ کاربر ادمین");
   const { hashPassword } = await import("../src/lib/auth");
@@ -514,9 +527,18 @@ async function main() {
   await db.menuItem.create({
     data: { label: "گالری تصاویر", url: "/gallery", location: "main", order: 5 },
   });
+  await db.menuItem.create({
+    data: { label: "رسانه و ویدیوها", url: "/media", location: "main", order: 6 },
+  });
+  await db.menuItem.create({
+    data: { label: "پرسش‌های متداول", url: "/faq", location: "main", order: 7 },
+  });
+  await db.menuItem.create({
+    data: { label: "تقویم رویدادها", url: "/events", location: "main", order: 8 },
+  });
 
   const aboutMenu = await db.menuItem.create({
-    data: { label: "درباره مرکز", url: "#", location: "main", order: 6 },
+    data: { label: "درباره مرکز", url: "#", location: "main", order: 9 },
   });
   const aboutPages = [
     { label: "درباره مرکز", url: "/p/درباره-مرکز" },
@@ -533,7 +555,7 @@ async function main() {
   }
 
   const sysMenu = await db.menuItem.create({
-    data: { label: "سامانه‌ها", url: "#", location: "main", order: 7 },
+    data: { label: "سامانه‌ها", url: "#", location: "main", order: 10 },
   });
   const sysPages = [
     { label: "سامانه سما لایو", url: "https://samalive.ir/" },
@@ -547,7 +569,7 @@ async function main() {
   }
 
   await db.menuItem.create({
-    data: { label: "تماس با ما", url: "/contact", location: "main", order: 8 },
+    data: { label: "تماس با ما", url: "/contact", location: "main", order: 11 },
   });
 
   // منوی سریع
@@ -562,6 +584,99 @@ async function main() {
       data: { ...quick[i], location: "quick", order: i + 1 },
     });
   }
+
+  console.log("→ ویدیوهای نمونه");
+  await db.video.createMany({
+    data: [
+      {
+        title: "ویدیوی نمونه — معرفی سامانه",
+        description:
+          "این یک ویدیوی نمونه است؛ از پنل مدیریت (ویدیوها و تیزرها) می‌توانید لینک آپارات/یوتیوب یا فایل ویدیوی مرکز را جایگزین کنید.",
+        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        kind: "FILE",
+        category: "معرفی",
+        order: 1,
+      },
+      {
+        title: "ویدیوی نمونه — گزارش آموزشی",
+        description: "ویدیوی نمونه دوم؛ قابل جایگزینی از پنل مدیریت.",
+        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        kind: "FILE",
+        category: "آموزشی",
+        order: 2,
+      },
+    ],
+  });
+
+  console.log("→ پرسش‌های متداول نمونه");
+  await db.faq.createMany({
+    data: [
+      {
+        question: "چگونه در رشته‌های مرکز ثبت‌نام کنم؟",
+        answer:
+          "ثبت‌نام از طریق سامانه سنجش دانشگاه جامع علمی‌کاربردی (sanjesh.uast.ac.ir) در زمان‌های اعلام‌شده انجام می‌شود. زمان‌بندی دقیق در بخش اطلاعیه‌های سایت منتشر می‌شود و می‌توانید با تلفن‌های مرکز نیز مشورت کنید.",
+        order: 1,
+      },
+      {
+        question: "شرایط پذیرش در مقطع کاردانی حرفه‌ای چیست؟",
+        answer:
+          "دارا بودن دیپلم نظام قدیم یا جدید (فنی و حرفه‌ای، کاردانش یا نظری) برای مقطع کاردانی حرفه‌ای لازم است. پذیرش بدون کنکور و بر اساس سوابق تحصیلی است.",
+        order: 2,
+      },
+      {
+        question: "آیا امکان تحصیل بدون کنکور وجود دارد؟",
+        answer:
+          "بله؛ پذیرش رشته‌های دانشگاه جامع علمی‌کاربردی بدون آزمون و بر اساس سوابق تحصیلی است. ثبت‌نام در سامانه سنجش دانشگاه انجام می‌شود.",
+        order: 3,
+      },
+      {
+        question: "کلاس‌ها به‌صورت حضوری است یا مجازی؟",
+        answer:
+          "بخشی از کلاس‌ها حضوری در مرکز و بخشی از طریق سامانه‌های آموزش مجازی (سما لایو و هم‌آوا) برگزار می‌شود. برنامه دقیق هر درس در ابتدای ترم اعلام می‌شود.",
+        order: 4,
+      },
+      {
+        question: "مدارک لازم برای ثبت‌نام عضویت در سایت چیست؟",
+        answer:
+          "برای عضویت در سامانه (بخش عضویت دانشجویان) کافی است شماره دانشجویی، ایمیل و شماره تماس خود را وارد کنید. پس از تأیید مدیر، حساب شما فعال می‌شود.",
+        order: 5,
+      },
+      {
+        question: "ساعات کاری مرکز چگونه است؟",
+        answer:
+          "دفتر مرکز از شنبه تا چهارشنبه ساعت ۸ تا ۱۶ پاسخگوی مراجعان است. برای هماهنگی قبلی می‌توانید تماس بگیرید.",
+        order: 6,
+      },
+    ],
+  });
+
+  console.log("→ رویدادهای نمونه");
+  const nowYear = new Date().getFullYear();
+  await db.event.createMany({
+    data: [
+      {
+        title: "شروع ثبت‌نام ترم جدید",
+        description: "آغاز ثبت‌نام واحدهای آموزشی نیمسال جدید برای دانشجویان فعلی و متقاضیان جدید.",
+        date: new Date(nowYear, 8, 15, 8, 30),
+        location: "سامانه سنجش دانشگاه جامع علمی‌کاربردی",
+        category: "آموزشی",
+      },
+      {
+        title: "جلسه هم‌اندیشی اساتید",
+        description: "نشست هم‌اندیشی اساتید و مسئولان گروه‌های آموزشی مرکز.",
+        date: new Date(nowYear, 9, 5, 10, 0),
+        location: "سالن کنفرانس مرکز — طبقه چهارم",
+        category: "آموزشی",
+      },
+      {
+        title: "مراسم جشن دانش‌آموختگی",
+        description: "تجلیل از دانش‌آموختگان جدید مقاطع کاردانی و کارشناسی حرفه‌ای.",
+        date: new Date(nowYear + 1, 1, 20, 17, 0),
+        location: "سالن اجتماعات مرکز",
+        category: "فرهنگی",
+      },
+    ],
+  });
 
   console.log("→ عضو نمونه دانشجویی");
   await db.member.create({
@@ -620,3 +735,148 @@ main()
   .finally(async () => {
     await db.$disconnect();
   });
+
+/**
+ * حالت ارتقا: بدون حذف داده‌های موجود، موارد جدید اضافه می‌شود:
+ * - تنظیمات پیش‌فرض جدید (نقشه، نوار خبری)
+ * - منوهای صفحات تازه (رسانه، پرسش‌های متداول، تقویم رویدادها)
+ * - نمونهٔ ویدیو/پرسش/رویداد فقط وقتی جدول مربوطه خالی است
+ */
+async function upgradeExisting() {
+  const { DEFAULT_SETTINGS } = await import("../src/lib/settings");
+
+  // ۱) تنظیمات جدید
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+    const exists = await db.setting.findUnique({ where: { key } });
+    if (!exists) {
+      await db.setting.create({ data: { key, value } });
+      console.log(`  + تنظیمات: ${key}`);
+    }
+  }
+
+  // ۲) منوهای صفحات جدید (اگر لینکشان در منوی اصلی نیست)
+  const existingUrls = new Set(
+    (await db.menuItem.findMany({ where: { location: "main" } })).map((m) => m.url)
+  );
+  const maxOrder = await db.menuItem.aggregate({
+    where: { location: "main" },
+    _max: { order: true },
+  });
+  let order = (maxOrder._max.order ?? 0) + 1;
+  const newMenus = [
+    { label: "رسانه و ویدیوها", url: "/media" },
+    { label: "پرسش‌های متداول", url: "/faq" },
+    { label: "تقویم رویدادها", url: "/events" },
+  ];
+  for (const m of newMenus) {
+    if (!existingUrls.has(m.url)) {
+      await db.menuItem.create({
+        data: { ...m, location: "main", order: order++ },
+      });
+      console.log(`  + منو: ${m.label}`);
+    }
+  }
+
+  // ۳) نمونهٔ ویدیوها (فقط اگر جدول خالی است)
+  if ((await db.video.count()) === 0) {
+    await db.video.createMany({
+      data: [
+        {
+          title: "ویدیوی نمونه — معرفی سامانه",
+          description:
+            "این یک ویدیوی نمونه است؛ از پنل مدیریت می‌توانید لینک آپارات/یوتیوب یا فایل ویدیوی مرکز را جایگزین کنید.",
+          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          kind: "FILE",
+          category: "معرفی",
+          order: 1,
+        },
+        {
+          title: "ویدیوی نمونه — گزارش آموزشی",
+          description: "ویدیوی نمونه دوم؛ قابل جایگزینی از پنل مدیریت.",
+          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+          kind: "FILE",
+          category: "آموزشی",
+          order: 2,
+        },
+      ],
+    });
+    console.log("  + ویدیوهای نمونه");
+  }
+
+  // ۴) پرسش‌های متداول (فقط اگر جدول خالی است)
+  if ((await db.faq.count()) === 0) {
+    await db.faq.createMany({
+      data: [
+        {
+          question: "چگونه در رشته‌های مرکز ثبت‌نام کنم؟",
+          answer:
+            "ثبت‌نام از طریق سامانه سنجش دانشگاه جامع علمی‌کاربردی (sanjesh.uast.ac.ir) در زمان‌های اعلام‌شده انجام می‌شود. زمان‌بندی دقیق در بخش اطلاعیه‌های سایت منتشر می‌شود و می‌توانید با تلفن‌های مرکز نیز مشورت کنید.",
+          order: 1,
+        },
+        {
+          question: "شرایط پذیرش در مقطع کاردانی حرفه‌ای چیست؟",
+          answer:
+            "دارا بودن دیپلم (فنی و حرفه‌ای، کاردانش یا نظری) برای مقطع کاردانی حرفه‌ای لازم است. پذیرش بدون کنکور و بر اساس سوابق تحصیلی است.",
+          order: 2,
+        },
+        {
+          question: "آیا امکان تحصیل بدون کنکور وجود دارد؟",
+          answer:
+            "بله؛ پذیرش رشته‌های دانشگاه جامع علمی‌کاربردی بدون آزمون و بر اساس سوابق تحصیلی است.",
+          order: 3,
+        },
+        {
+          question: "کلاس‌ها به‌صورت حضوری است یا مجازی؟",
+          answer:
+            "بخشی از کلاس‌ها حضوری در مرکز و بخشی از طریق سامانه‌های آموزش مجازی (سما لایو و هم‌آوا) برگزار می‌شود.",
+          order: 4,
+        },
+        {
+          question: "مدارک لازم برای ثبت‌نام عضویت در سایت چیست؟",
+          answer:
+            "برای عضویت کافی است شماره دانشجویی، ایمیل و شماره تماس خود را در بخش «عضویت دانشجویان» وارد کنید. پس از تأیید مدیر، حساب شما فعال می‌شود.",
+          order: 5,
+        },
+        {
+          question: "ساعات کاری مرکز چگونه است؟",
+          answer:
+            "دفتر مرکز از شنبه تا چهارشنبه ساعت ۸ تا ۱۶ پاسخگوی مراجعان است.",
+          order: 6,
+        },
+      ],
+    });
+    console.log("  + پرسش‌های متداول نمونه");
+  }
+
+  // ۵) رویدادهای نمونه (فقط اگر جدول خالی است)
+  if ((await db.event.count()) === 0) {
+    const y = new Date().getFullYear();
+    await db.event.createMany({
+      data: [
+        {
+          title: "شروع ثبت‌نام ترم جدید",
+          description:
+            "آغاز ثبت‌نام واحدهای آموزشی نیمسال جدید برای دانشجویان فعلی و متقاضیان جدید.",
+          date: new Date(y, 8, 15, 8, 30),
+          location: "سامانه سنجش دانشگاه جامع علمی‌کاربردی",
+          category: "آموزشی",
+        },
+        {
+          title: "جلسه هم‌اندیشی اساتید",
+          description: "نشست هم‌اندیشی اساتید و مسئولان گروه‌های آموزشی مرکز.",
+          date: new Date(y, 9, 5, 10, 0),
+          location: "سالن کنفرانس مرکز — طبقه چهارم",
+          category: "آموزشی",
+        },
+        {
+          title: "مراسم جشن دانش‌آموختگی",
+          description: "تجلیل از دانش‌آموختگان جدید مقاطع کاردانی و کارشناسی حرفه‌ای.",
+          date: new Date(y + 1, 1, 20, 17, 0),
+          location: "سالن اجتماعات مرکز",
+          category: "فرهنگی",
+        },
+      ],
+    });
+    console.log("  + رویدادهای نمونه");
+  }
+}

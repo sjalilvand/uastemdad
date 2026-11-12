@@ -5,6 +5,7 @@ import { HeroSlider } from "@/components/site/hero-slider";
 import { StatsBand } from "@/components/site/stats-band";
 import { SectionHeading } from "@/components/site/section-heading";
 import { PostCard } from "@/components/site/post-card";
+import { AppPromoCard } from "@/components/site/site-qr";
 import { toFa, formatJalali } from "@/lib/jalali";
 import {
   Monitor,
@@ -17,12 +18,15 @@ import {
   Phone,
   MapPin,
   UserRound,
+  CalendarClock,
+  Clapperboard,
+  HelpCircle,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [slides, news, announcements, programs, systems, gallery, president, settings] =
+  const [slides, news, announcements, programs, systems, gallery, president, settings, upcomingEvents, videoCount] =
     await Promise.all([
       db.slide.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
       db.post.findMany({
@@ -51,6 +55,12 @@ export default async function HomePage() {
         where: { group: "president", isActive: true },
       }),
       getSettings(),
+      db.event.findMany({
+        where: { isActive: true, date: { gte: new Date() } },
+        orderBy: { date: "asc" },
+        take: 3,
+      }),
+      db.video.count({ where: { isActive: true } }),
     ]);
 
   const [featured, ...restNews] = news;
@@ -167,6 +177,39 @@ export default async function HomePage() {
               </div>
             </div>
 
+            {/* رویدادهای پیش رو */}
+            {upcomingEvents.length > 0 && (
+              <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2.5">
+                  <CalendarClock className="h-5 w-5 text-primary" />
+                  <h3 className="font-bold text-foreground">رویدادهای پیش رو</h3>
+                  <Link
+                    href="/events"
+                    className="ms-auto text-[11px] font-bold text-primary hover:text-gold inline-flex items-center gap-1"
+                  >
+                    تقویم کامل
+                    <ArrowLeft className="h-3 w-3" />
+                  </Link>
+                </div>
+                <ul className="divide-y divide-border/60">
+                  {upcomingEvents.map((e) => (
+                    <li key={e.id} className="px-5 py-3.5 flex items-start gap-3">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-gold shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold leading-6 text-foreground line-clamp-2">
+                          {e.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                          <CalendarDays className="h-3 w-3" />
+                          {formatJalali(e.date, { withWeekday: true })}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* ریاست مرکز */}
             {president && (
               <div className="bg-card rounded-2xl border border-border shadow-sm p-6 text-center hover-lift">
@@ -262,6 +305,62 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* دسترسی سریع به بخش‌های جدید */}
+      <section className="mx-auto max-w-7xl px-4 pb-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Link
+            href="/media"
+            className="group bg-card rounded-2xl border border-border shadow-sm p-5 flex items-center gap-4 hover-lift"
+          >
+            <span className="h-12 w-12 rounded-xl emerald-gradient flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+              <Clapperboard className="h-5.5 w-5.5 text-white" />
+            </span>
+            <span>
+              <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                رسانه و ویدیوها
+              </span>
+              <span className="block text-xs text-muted-foreground mt-1">
+                {videoCount > 0
+                  ? `تاکنون ${toFa(videoCount)} ویدیو و تیزر منتشر شده`
+                  : "ویدیوهای معرفی و تیزرهای مرکز"}
+              </span>
+            </span>
+          </Link>
+          <Link
+            href="/faq"
+            className="group bg-card rounded-2xl border border-border shadow-sm p-5 flex items-center gap-4 hover-lift"
+          >
+            <span className="h-12 w-12 rounded-xl emerald-gradient flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+              <HelpCircle className="h-5.5 w-5.5 text-white" />
+            </span>
+            <span>
+              <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                پرسش‌های متداول
+              </span>
+              <span className="block text-xs text-muted-foreground mt-1">
+                پاسخ پرتکرارترین پرسش‌های دانشجویان
+              </span>
+            </span>
+          </Link>
+          <Link
+            href="/app"
+            className="group bg-card rounded-2xl border border-border shadow-sm p-5 flex items-center gap-4 hover-lift"
+          >
+            <span className="h-12 w-12 rounded-xl emerald-gradient flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+              <Monitor className="h-5.5 w-5.5 text-white" />
+            </span>
+            <span>
+              <span className="block font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                نصب اپ موبایل
+              </span>
+              <span className="block text-xs text-muted-foreground mt-1">
+                نصب مستقیم سامانه روی گوشی با QR
+              </span>
+            </span>
+          </Link>
+        </div>
+      </section>
+
       {/* نوار دعوت به گفتگو و تماس */}
       <section className="mx-auto max-w-7xl px-4 pb-16">
         <div className="rounded-3xl emerald-gradient pattern-bg overflow-hidden">
@@ -306,6 +405,10 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+      {/* دعوت به نصب اپ موبایل */}
+      <section className="mx-auto max-w-7xl px-4 pb-4">
+        <AppPromoCard />
       </section>
     </div>
   );

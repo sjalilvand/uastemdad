@@ -54,7 +54,8 @@ export async function POST(
   }
   try {
     const body = await req.json();
-    const data = sanitizeBody(entry.def, body, { partial: false });
+    let data = sanitizeBody(entry.def, body, { partial: false });
+    if (entry.beforeSave) data = entry.beforeSave(data) as typeof data;
     const item = await entry.delegate.create({ data });
     return NextResponse.json({ item }, { status: 201 });
   } catch (e) {

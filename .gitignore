@@ -60,3 +60,5 @@ server.log
 /tmp
 # build dir for secondary port instance
 /.next-3003
+upload/
+db/
