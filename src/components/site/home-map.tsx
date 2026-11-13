@@ -93,8 +93,19 @@ export function HomeMap({
     return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&destination=${lat}%2C${lng}`;
   }, [selected, lat, lng]);
 
-  // باز کردن نقشه با نشان مقصد
-  const pinUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlng=${lng}#map=16/${lat}/${lng}`;
+  // باز کردن نقشه با نشان (Neshan) — سرویس نقشه ایرانی
+  // قالب بررسی‌شده: /maps/routing/car/destination/{lat},{lng}
+  // و با مبدأ: /maps/routing/car/origin/{lat},{lng}/destination/{lat},{lng}
+  const neshanUrl = useCallback(() => {
+    const d = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    if (selected) {
+      return `https://neshan.org/maps/routing/car/origin/${selected.lat.toFixed(6)},${selected.lng.toFixed(6)}/destination/${d}`;
+    }
+    return `https://neshan.org/maps/routing/car/destination/${d}`;
+  }, [selected, lat, lng]);
+
+  // نمایش تنها محل مرکز روی نشان (بدون مسیریابی)
+  const neshanViewUrl = `https://neshan.org/maps/routing/car/destination/${lat.toFixed(6)},${lng.toFixed(6)}`;
 
   const copyCoords = useCallback(async () => {
     try {
@@ -136,13 +147,13 @@ export function HomeMap({
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
               <a
-                href={pinUrl}
+                href={neshanViewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold px-3 py-1.5 hover:bg-primary/90 transition-colors"
               >
                 <MapPin className="h-3 w-3" />
-                {t("map.openWithPin")}
+                {t("map.openNeshan")}
               </a>
               <a
                 href={googleUrl()}
@@ -254,6 +265,15 @@ export function HomeMap({
 
         <div className="flex flex-wrap gap-2">
           <a
+            href={neshanUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Navigation className="h-3.5 w-3.5" />
+            {t("map.routeNeshan")}
+          </a>
+          <a
             href={googleUrl()}
             target="_blank"
             rel="noopener noreferrer"
@@ -263,9 +283,9 @@ export function HomeMap({
                 setError(t("map.enterOrigin"));
               }
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card text-foreground text-xs font-bold px-4 py-2.5 hover:border-primary/40 hover:text-primary transition-colors"
           >
-            <Navigation className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3.5 w-3.5" />
             {t("map.routeGoogle")}
           </a>
           <a
