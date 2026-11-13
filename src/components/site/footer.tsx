@@ -7,7 +7,7 @@ import { VisitorCounter } from "./visitor-counter";
 import { LocaleSwitcher } from "./locale-switcher";
 import { usePrefs } from "@/lib/prefs";
 import { getPhones } from "@/lib/settings";
-import { isExternal, type MenuNode } from "@/lib/menu";
+import type { MenuNode } from "@/lib/menu";
 import {
   MapPin,
   Phone,
@@ -15,7 +15,12 @@ import {
   ExternalLink,
   ChevronLeft,
   MailOpen,
+  Link2,
+  Compass,
+  LayoutGrid,
+  ArrowUp,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface FooterProps {
   settings: Record<string, string>;
@@ -33,33 +38,64 @@ const QUICK = [
   { href: "/contact", key: "top.contact", fallback: "تماس با ما" },
 ];
 
+/** عنوان ستون‌ها با خط تزئینی طلایی */
+function ColTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="mb-4">
+      <h4 className="flex items-center gap-2 text-sm font-bold text-gold">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gold/10 border border-gold/25">
+          {icon}
+        </span>
+        {children}
+      </h4>
+      <div className="mt-2 h-0.5 w-10 gold-gradient rounded-full" />
+    </div>
+  );
+}
+
 export function Footer({ settings, systems, links, aboutMenu }: FooterProps) {
   const { t } = usePrefs();
   const phones = getPhones(settings);
+
+  const scrollTop = () => {
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+  };
+
   return (
-    <footer className="mt-auto bg-sidebar text-sidebar-foreground pattern-bg">
-      {/* پیوندهای مرتبط */}
-      <div className="border-b border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs">
-          <span className="font-bold text-gold">{t("footer.relatedLinks")}</span>
+    <footer className="mt-auto bg-sidebar text-sidebar-foreground pattern-bg relative">
+      {/* خط تزئینی طلایی بالای پاورقی */}
+      <div className="h-0.5 w-full bg-gradient-to-l from-gold via-gold/40 to-transparent" />
+
+      {/* پیوندهای مرتبط — چیپ‌های مرتب و برجسته */}
+      <div className="border-b border-white/10 bg-black/15">
+        <div className="mx-auto max-w-7xl px-4 py-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full gold-gradient px-3.5 py-1.5 text-[11px] font-extrabold text-[#241c04] shadow-sm">
+            <Link2 className="h-3.5 w-3.5" />
+            {t("footer.relatedLinks")}
+          </span>
           {links.map((l) => (
             <a
               key={l.id}
               href={l.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-white/75 hover:text-white transition-colors"
+              className="group inline-flex max-w-[240px] items-center gap-1.5 truncate rounded-full border border-white/12 bg-white/[0.05] px-3.5 py-1.5 text-[11px] font-medium text-white/75 transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:bg-white/[0.1] hover:text-white"
             >
-              {l.title}
-              <ExternalLink className="h-3 w-3 opacity-60" />
+              <span className="truncate">{l.title}</span>
+              <ExternalLink className="h-3 w-3 shrink-0 opacity-50 transition-opacity group-hover:opacity-90" />
             </a>
           ))}
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+      {/* ستون‌های اصلی پاورقی */}
+      <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 md:grid-cols-2 lg:grid-cols-12">
         {/* درباره */}
-        <div>
+        <div className="lg:col-span-3">
           <div className="flex items-center gap-3 mb-4">
             <Logo className="h-12 w-12" />
             <div>
@@ -77,65 +113,115 @@ export function Footer({ settings, systems, links, aboutMenu }: FooterProps) {
           </div>
         </div>
 
-        {/* خبرنامه */}
-        <div>
-          <h4 className="font-bold text-gold mb-4 text-sm flex items-center gap-2">
-            <MailOpen className="h-4 w-4" />
-            {t("footer.newsletter")}
-          </h4>
-          <p className="text-white/60 text-xs leading-6 mb-4">
-            {t("footer.newsletterDesc")}
-          </p>
-          <NewsletterForm compact />
-        </div>
-
         {/* دسترسی سریع */}
-        <div>
-          <h4 className="font-bold text-gold mb-4 text-sm">{t("footer.quickAccess")}</h4>
-          <ul className="space-y-2.5 text-sm">
+        <div className="lg:col-span-2">
+          <ColTitle icon={<LayoutGrid className="h-3.5 w-3.5 text-gold" />}>
+            {t("footer.quickAccess")}
+          </ColTitle>
+          <ul className="grid grid-cols-1 gap-1.5">
             {QUICK.map((q) => (
               <li key={q.href}>
                 <Link
                   href={q.href}
-                  className="text-white/70 hover:text-white inline-flex items-center gap-1 transition-colors"
+                  className="group flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-medium text-white/70 transition-all hover:border-gold/25 hover:bg-white/[0.06] hover:ps-3 hover:text-white"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5 text-gold" /> {t(q.key, q.fallback)}
+                  <ChevronLeft className="h-3 w-3 text-gold/70 shrink-0 transition-transform group-hover:-translate-x-0.5" />
+                  {t(q.key, q.fallback)}
                 </Link>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* تماس */}
-        <div>
-          <h4 className="font-bold text-gold mb-4 text-sm">{t("footer.contact")}</h4>
-          <ul className="space-y-3 text-sm text-white/70">
-            <li className="flex items-start gap-2.5">
-              <MapPin className="h-4 w-4 text-gold mt-0.5 shrink-0" />
-              <span className="leading-7">{settings.address}</span>
+        {/* درباره مرکز — صفحات منوی «درباره» */}
+        {aboutMenu.length > 0 && (
+          <div className="lg:col-span-2">
+            <ColTitle icon={<Compass className="h-3.5 w-3.5 text-gold" />}>
+              {t("footer.aboutCenter")}
+            </ColTitle>
+            <ul className="grid grid-cols-1 gap-1.5">
+              {aboutMenu.slice(0, 8).map((m) => (
+                <li key={m.id}>
+                  <Link
+                    href={m.url}
+                    className="group flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-medium text-white/70 transition-all hover:border-gold/25 hover:bg-white/[0.06] hover:ps-3 hover:text-white"
+                  >
+                    <ChevronLeft className="h-3 w-3 text-gold/70 shrink-0 transition-transform group-hover:-translate-x-0.5" />
+                    {m.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* خبرنامه */}
+        <div className="lg:col-span-2">
+          <ColTitle icon={<MailOpen className="h-3.5 w-3.5 text-gold" />}>
+            {t("footer.newsletter")}
+          </ColTitle>
+          <p className="text-white/60 text-xs leading-6 mb-4">
+            {t("footer.newsletterDesc")}
+          </p>
+          <NewsletterForm compact />
+        </div>
+
+        {/* تماس + سامانه‌ها */}
+        <div className="lg:col-span-3">
+          <ColTitle icon={<Phone className="h-3.5 w-3.5 text-gold" />}>
+            {t("footer.contact")}
+          </ColTitle>
+          <ul className="space-y-3 text-xs text-white/70">
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 border border-gold/25">
+                <MapPin className="h-4 w-4 text-gold" />
+              </span>
+              <span className="leading-6 pt-1.5">{settings.address}</span>
             </li>
-            <li className="flex items-center gap-2.5">
-              <Phone className="h-4 w-4 text-gold shrink-0" />
-              <span dir="ltr" className="text-left">
-                {phones.join(" – ")}
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 border border-gold/25">
+                <Phone className="h-4 w-4 text-gold" />
+              </span>
+              <span className="flex flex-col gap-0.5 pt-1.5">
+                {phones.map((p) => (
+                  <a
+                    key={p}
+                    href={`tel:${p.replace(/\s/g, "")}`}
+                    dir="ltr"
+                    className="w-fit text-white/70 hover:text-gold transition-colors"
+                  >
+                    {p}
+                  </a>
+                ))}
               </span>
             </li>
-            <li className="flex items-center gap-2.5">
-              <Mail className="h-4 w-4 text-gold shrink-0" />
-              <span dir="ltr">{settings.email}</span>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold/10 border border-gold/25">
+                <Mail className="h-4 w-4 text-gold" />
+              </span>
+              <a
+                href={`mailto:${settings.email}`}
+                dir="ltr"
+                className="pt-1.5 hover:text-gold transition-colors"
+              >
+                {settings.email}
+              </a>
             </li>
           </ul>
           {systems.length > 0 && (
             <div className="mt-5">
-              <h4 className="font-bold text-gold mb-3 text-sm">{t("footer.systems")}</h4>
+              <h4 className="font-bold text-gold mb-2.5 text-xs flex items-center gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                {t("footer.systems")}
+              </h4>
               <div className="flex flex-wrap gap-2">
-                {systems.slice(0, 4).map((s) => (
+                {systems.slice(0, 5).map((s) => (
                   <a
                     key={s.id}
                     href={s.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs bg-white/8 hover:bg-white/15 border border-white/10 rounded-full px-3 py-1.5 text-white/80 hover:text-white transition-colors"
+                    className="rounded-full bg-white/[0.07] hover:bg-white/[0.13] border border-white/12 hover:border-gold/40 px-3 py-1.5 text-[11px] font-bold text-white/80 hover:text-white transition-all hover:-translate-y-0.5"
                   >
                     {s.title}
                   </a>
@@ -146,10 +232,22 @@ export function Footer({ settings, systems, links, aboutMenu }: FooterProps) {
         </div>
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-4 flex flex-wrap items-center justify-center gap-3 text-xs text-white/50">
-          <span>{settings.footerNote}</span>
-          <LocaleSwitcher light />
+      {/* نوار پایانی */}
+      <div className="border-t border-white/10 bg-black/20">
+        <div className="mx-auto max-w-7xl px-4 py-4 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
+          <span className="leading-6">{settings.footerNote}</span>
+          <div className="flex items-center gap-2">
+            <LocaleSwitcher light />
+            <button
+              type="button"
+              onClick={scrollTop}
+              aria-label={t("footer.backToTop", "بازگشت به بالای صفحه")}
+              title={t("footer.backToTop", "بازگشت به بالای صفحه")}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/75 transition-all hover:border-gold/50 hover:bg-gold/15 hover:text-gold cursor-pointer"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </footer>

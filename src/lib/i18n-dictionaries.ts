@@ -33,6 +33,7 @@ const fa: Record<string, string> = {
   // پاورقی
   "footer.quickAccess": "دسترسی سریع",
   "footer.aboutCenter": "درباره مرکز",
+  "footer.backToTop": "بازگشت به بالای صفحه",
   "footer.contact": "اطلاعات تماس",
   "footer.relatedLinks": "پیوندهای مرتبط:",
   "footer.systems": "سامانه‌ها",
@@ -349,6 +350,7 @@ const en: Record<string, string> = {
   "header.personalize": "Personalize & Accessibility",
   "footer.quickAccess": "Quick Access",
   "footer.aboutCenter": "About the Center",
+  "footer.backToTop": "Back to top",
   "footer.contact": "Contact Info",
   "footer.relatedLinks": "Related links:",
   "footer.systems": "Systems",
@@ -637,6 +639,7 @@ const ar: Record<string, string> = {
   "header.personalize": "التخصيص وإمكانية الوصول",
   "footer.quickAccess": "وصول سريع",
   "footer.aboutCenter": "عن المركز",
+  "footer.backToTop": "العودة إلى الأعلى",
   "footer.contact": "معلومات الاتصال",
   "footer.relatedLinks": "روابط ذات صلة:",
   "footer.systems": "الأنظمة",
