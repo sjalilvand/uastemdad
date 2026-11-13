@@ -1,10 +1,16 @@
 /* Service Worker سامانه uastemdad — کش آفلاین و بارگذاری سریع */
-const VERSION = "uast-v1";
+const VERSION = "uast-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = "/offline.html";
 
-// فایل‌های پایه که در نصب کش می‌شوند
+/* در حالت توسعه (localhost) فایل‌های _next/static نام پایدار ندارند و
+   محتوایشان بین اجراها تغییر می‌کند؛ کش‌کردن آنها باعث اختلاط کد قدیم و
+   جدید و خطای hydration می‌شود. بنابراین در لوکال، استاتیک هرگز کش نمی‌شود. */
+const IS_LOCAL =
+  self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
+
+// فایل‌های پایه که در نصب کش می‌شوند (همیشه تغییرناپذیرند)
 const PRECACHE = [
   OFFLINE_URL,
   "/icons/icon-192.png",
@@ -37,6 +43,11 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// پیام SKIP_WAITING از صفحه برای به‌روزرسانی فوری
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -45,6 +56,9 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   // مسیرهای مدیریتی و API هرگز کش نمی‌شوند
   if (url.pathname.startsWith("/admin") || url.pathname.startsWith("/api")) return;
+
+  // در لوکال (حالت توسعه) فایل‌های استاتیک Next بدون کش — جلوگیری از کد قدیمی
+  if (IS_LOCAL && url.pathname.startsWith("/_next/")) return;
 
   // صفحات: ابتدا شبکه، در خطا کش، و در آفلاین صفحهٔ آفلاین
   if (request.mode === "navigate") {
@@ -64,14 +78,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // دارایی‌های استاتیک (تصاویر، فونت‌ها، CSS/JS): کش اول
-  if (
-    url.pathname.startsWith("/_next/static") ||
+  // دارایی‌های تغییرناپذیر (فونت، آیکون، تصویر): کش اول
+  // در بیلد production فایل‌های _next/static هش محتوا دارند و امن است
+  const cacheable =
     url.pathname.startsWith("/icons") ||
     url.pathname.startsWith("/images") ||
     url.pathname.startsWith("/fonts") ||
-    url.pathname.startsWith("/uploads")
-  ) {
+    url.pathname.startsWith("/uploads") ||
+    (!IS_LOCAL && url.pathname.startsWith("/_next/static"));
+
+  if (cacheable) {
     event.respondWith(
       caches.match(request).then(
         (hit) =>

@@ -182,7 +182,8 @@ export function SitePrefsProvider({ children }: { children: ReactNode }) {
   const t = useCallback(
     (key: string, fallback?: string) => {
       const dict = DICTS[prefs.locale] || DICTS.fa;
-      return dict[key] ?? DICTS.fa[key] ?? fallback ?? key;
+      // زنجیرهٔ پشتیبان: زبان فعال → فارسی → انگلیسی → عربی → fallback → کلید
+      return dict[key] ?? DICTS.fa[key] ?? DICTS.en[key] ?? DICTS.ar[key] ?? fallback ?? key;
     },
     [prefs.locale]
   );
@@ -216,7 +217,8 @@ export function usePrefs(): PrefsContextValue {
       prefs: DEFAULT_PREFS,
       set: () => {},
       reset: () => {},
-      t: (key, fallback) => DICTS.fa[key] ?? fallback ?? key,
+      t: (key, fallback) =>
+        DICTS.fa[key] ?? DICTS.en[key] ?? DICTS.ar[key] ?? fallback ?? key,
       locale: "fa",
       dir: "rtl",
       n: (v) => toLocaleDigits(v, "fa"),

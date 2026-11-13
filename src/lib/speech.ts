@@ -149,6 +149,7 @@ export function speak(text: string, opts: SpeakOptions = {}): SpeakHandle {
 
   let stopped = false;
   let index = 0;
+  let errorReported = false;
 
   const startChunk = async () => {
     if (stopped) return;
@@ -183,6 +184,11 @@ export function speak(text: string, opts: SpeakOptions = {}): SpeakHandle {
     };
     utter.onerror = () => {
       if (stopped) return;
+      // گزارش خطا فقط یک‌بار — اگر صدایی پخش نشد کاربر مطلع شود
+      if (!errorReported && index === 0) {
+        errorReported = true;
+        opts.onError?.();
+      }
       // تلاش برای قطعهٔ بعدی؛ اگر خطا ادامه داشت متوقف می‌شود
       index += 1;
       if (index >= chunks.length) {

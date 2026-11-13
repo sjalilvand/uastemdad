@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -21,10 +20,11 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground min-h-screen flex flex-col">
-        {/* اعمال تنظیمات شخصی‌سازی (زبان، فونت، اندازه و…) قبل از رندر */}
-        <Script
+        {/* اعمال تنظیمات شخصی‌سازی (زبان، فونت، اندازه و…) قبل از رندر
+            — تگ script خام (بدون next/script) تا در HTML اولیه حضور داشته باشد
+            و باعث ناهماهنگی hydration نشود */}
+        <script
           id="prefs-boot"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: PREFS_BOOT_SCRIPT }}
         />
         <ThemeProvider

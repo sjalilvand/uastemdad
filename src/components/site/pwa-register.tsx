@@ -10,7 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/** ثبت سرویس‌ورکر PWA در کل سایت */
+/** ثبت سرویس‌ورکر PWA در کل سایت + به‌روزرسانی خودکار هنگام انتشار نسخهٔ جدید */
 export function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -21,9 +21,41 @@ export function PwaRegister() {
       location.hostname === "localhost" ||
       location.hostname === "127.0.0.1";
     if (!isSecure) return;
+
     const onLoad = () => {
-      navigator.serviceWorker.register("/sw.js").catch((e) => {
-        console.warn("SW registration failed:", e);
+      navigator.serviceWorker
+        .register("/sw.js", { updateViaCache: "none" })
+        .then((registration) => {
+          // اگر نسخهٔ جدیدی در حال نصب است، فوراً فعال شود
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            registration.waiting.postMessage("SKIP_WAITING");
+          }
+          registration.addEventListener("updatefound", () => {
+            const nw = registration.installing;
+            if (!nw) return;
+            nw.addEventListener("statechange", () => {
+              if (nw.state === "installed" && navigator.serviceWorker.controller) {
+                nw.postMessage("SKIP_WAITING");
+              }
+            });
+          });
+        })
+        .catch((e) => {
+          console.warn("SW registration failed:", e);
+        });
+
+      // پس از فعال‌شدن سرویس‌ورکر جدید، صفحه یک‌بار تازه‌سازی می‌شود
+      let refreshed = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshed) return;
+        try {
+          if (sessionStorage.getItem("uast_sw_reload") === "1") return;
+          sessionStorage.setItem("uast_sw_reload", "1");
+        } catch {
+          /* ignore */
+        }
+        refreshed = true;
+        window.location.reload();
       });
     };
     if (document.readyState === "complete") onLoad();

@@ -49,6 +49,7 @@ export function ReadAloud({ targetSelector = "#tts-content" }: { targetSelector?
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [settings, setSettings] = useState<TtsSettings>({ voiceURI: null, rate: 0.95 });
   const [noText, setNoText] = useState(false);
+  const [playError, setPlayError] = useState(false);
   const handleRef = useRef<SpeakHandle | null>(null);
 
   useEffect(() => {
@@ -110,6 +111,8 @@ export function ReadAloud({ targetSelector = "#tts-content" }: { targetSelector?
       onError: () => {
         setSpeaking(false);
         setPaused(false);
+        setPlayError(true);
+        setTimeout(() => setPlayError(false), 8000);
         document.querySelector(targetSelector)?.classList.remove("tts-active");
       },
     });
@@ -271,6 +274,12 @@ export function ReadAloud({ targetSelector = "#tts-content" }: { targetSelector?
       )}
       {noText && (
         <span className="text-[10px] text-destructive">{t("tts.noText")}</span>
+      )}
+      {playError && (
+        <span className="inline-flex items-center gap-1 text-[10px] text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-2 py-1">
+          <AlertCircle className="h-3 w-3 shrink-0" />
+          {t("tts.error")}
+        </span>
       )}
     </div>
   );

@@ -123,7 +123,13 @@ export function HomeMap({
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-      <div className="relative aspect-[16/10] bg-secondary">
+      <div
+        className={
+          compact
+            ? "relative h-[280px] sm:h-[340px] bg-secondary"
+            : "relative h-[360px] sm:h-[440px] bg-secondary"
+        }
+      >
         <iframe
           src={embedSrc}
           title={t("map.title")}
