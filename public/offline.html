@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>آفلاین هستید — مرکز آموزش علمی–کاربردی کمیته امداد</title>
+  <title>سرور در دسترس نیست — مرکز آموزش علمی–کاربردی کمیته امداد</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -13,10 +13,28 @@
       background: linear-gradient(135deg, #0b5d51, #147a68, #0b5d51);
       color: #fff; padding: 1.5rem; text-align: center;
     }
-    .box { max-width: 420px; }
+    .box { max-width: 480px; }
     .icon { font-size: 64px; margin-bottom: 1rem; }
     h1 { font-size: 1.35rem; margin-bottom: .75rem; }
-    p { font-size: .9rem; opacity: .85; line-height: 2; margin-bottom: 1.5rem; }
+    p { font-size: .9rem; opacity: .85; line-height: 2; margin-bottom: 1rem; }
+    .hint {
+      background: rgba(255,255,255,.12);
+      border: 1px dashed rgba(255,255,255,.35);
+      border-radius: .8rem;
+      padding: .9rem 1.1rem;
+      font-size: .82rem;
+      line-height: 2;
+      text-align: right;
+      margin-bottom: 1.5rem;
+      opacity: .92;
+    }
+    .hint b { color: #f4d47c; }
+    code {
+      direction: ltr; display: inline-block;
+      background: rgba(0,0,0,.35); color: #ffe9a8;
+      padding: .15rem .5rem; border-radius: .4rem;
+      font-size: .85em;
+    }
     button {
       background: #c9a227; color: #1f1a03; border: 0; cursor: pointer;
       padding: .8rem 2rem; border-radius: .8rem; font-weight: 700;
@@ -27,8 +45,14 @@
 <body>
   <div class="box">
     <div class="icon">📡</div>
-    <h1>اتصال اینترنت در دسترس نیست</h1>
-    <p>صفحات بازدیدشدهٔ اخیر را می‌توانید آفلاین ببینید. برای مشاهدهٔ محتوای جدید، اتصال اینترنت را بررسی و دوباره تلاش کنید.</p>
+    <h1>اتصال به سرور برقرار نیست</h1>
+    <p>در حال حاضر امکان دریافت محتوای تازه از سامانه وجود ندارد. یکی از دو حالت زیر را بررسی کنید:</p>
+    <div class="hint">
+      <b>۱) اینترنت قطع است:</b> اتصال اینترنت خود را بررسی کنید.<br>
+      <b>۲) برنامه را روی سیستم خود اجرا می‌کنید:</b> سرور سامانه روشن نیست. در پوشهٔ پروژه این دستور را اجرا کنید و صبر کنید پیام <code>Ready</code> ظاهر شود:
+      <br><code>npm run dev:3003</code>
+      <br>سپس این صفحه را با <b>Ctrl+Shift+R</b> تازه‌سازی کنید.
+    </div>
     <button onclick="location.reload()">تلاش مجدد</button>
   </div>
 </body>

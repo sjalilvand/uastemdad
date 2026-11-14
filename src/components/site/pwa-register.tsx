@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePrefs } from "@/lib/prefs";
+import { useToast } from "@/hooks/use-toast";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +13,8 @@ interface BeforeInstallPromptEvent extends Event {
 
 /** ثبت سرویس‌ورکر PWA در کل سایت + به‌روزرسانی خودکار هنگام انتشار نسخهٔ جدید */
 export function PwaRegister() {
+  const { toast } = useToast();
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
@@ -21,6 +24,18 @@ export function PwaRegister() {
       location.hostname === "localhost" ||
       location.hostname === "127.0.0.1";
     if (!isSecure) return;
+
+    // اگر سرویس‌ورکر صفحه را از کش (نه سرور زنده) ارائه داده باشد، هشدار شفاف نمایش داده می‌شود
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "OFFLINE_FALLBACK") {
+        toast({
+          title: "اتصال به سرور برقرار نیست",
+          description:
+            "نسخهٔ ذخیره‌شدهٔ قبلی نمایش داده می‌شود؛ برای مشاهدهٔ محتوای تازه، اتصال سرور را بررسی کنید.",
+        });
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onSwMessage);
 
     const onLoad = () => {
       navigator.serviceWorker
@@ -60,8 +75,11 @@ export function PwaRegister() {
     };
     if (document.readyState === "complete") onLoad();
     else window.addEventListener("load", onLoad, { once: true });
-    return () => window.removeEventListener("load", onLoad);
-  }, []);
+    return () => {
+      window.removeEventListener("load", onLoad);
+      navigator.serviceWorker.removeEventListener("message", onSwMessage);
+    };
+  }, [toast]);
   return null;
 }
 
