@@ -97,17 +97,24 @@ export default async function ContactPage() {
               {T("contact.buildingGuide", "راهنمای طبقات ساختمان")}
             </h3>
             <p className="text-xs text-white/70 leading-6">
-              {T(
-                "contact.buildingGuideBody",
-                "واحدهای اداری در همکف، کلاس‌ها در طبقات اول تا سوم و سالن کنفرانس و ریاست در طبقه چهارم قرار دارند. راهنمای کامل در منوی «درباره مرکز» موجود است."
-              )}
+              {settings.buildingGuide ||
+                T(
+                  "contact.buildingGuideBody",
+                  "واحدهای اداری در همکف، کلاس‌ها در طبقات اول تا سوم و سالن کنفرانس و ریاست در طبقه چهارم قرار دارند. راهنمای کامل در منوی «درباره مرکز» موجود است."
+                )}
             </p>
           </div>
         </div>
 
         {/* نقشه و فرم */}
         <div className="lg:col-span-3 space-y-6">
-          <HomeMap lat={lat} lng={lng} address={settings.address} />
+          <HomeMap
+            lat={lat}
+            lng={lng}
+            address={settings.address}
+            destName={settings.mapDestName || undefined}
+            customMapUrl={settings.mapUrl || undefined}
+          />
           <ContactForm />
         </div>
       </div>

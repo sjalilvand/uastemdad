@@ -32,12 +32,14 @@ export function HomeMap({
   lng,
   address,
   destName,
+  customMapUrl,
   compact = false,
 }: {
   lat: number;
   lng: number;
   address: string;
   destName?: string;
+  customMapUrl?: string;
   compact?: boolean;
 }) {
   const { t, n } = usePrefs();
@@ -162,13 +164,13 @@ export function HomeMap({
                 {t("map.openNeshan")}
               </a>
               <a
-                href={googleUrl()}
+                href={customMapUrl || googleUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 rounded-lg border border-border text-[11px] font-bold px-3 py-1.5 text-foreground hover:border-primary/40 hover:text-primary transition-colors"
               >
                 <ExternalLink className="h-3 w-3" />
-                Google Maps
+                {t("map.openGoogle")}
               </a>
               <button
                 type="button"

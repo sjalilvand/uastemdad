@@ -359,7 +359,14 @@ export default async function HomePage() {
       {/* نقشه و مسیریابی */}
       <section className="mx-auto max-w-7xl px-4 pb-14">
         <SectionHeading title={T("map.title")} subtitle={T("map.subtitle")} />
-        <HomeMap lat={lat} lng={lng} address={settings.address} compact />
+        <HomeMap
+          lat={lat}
+          lng={lng}
+          address={settings.address}
+          destName={settings.mapDestName || undefined}
+          customMapUrl={settings.mapUrl || undefined}
+          compact
+        />
       </section>
 
       {/* دسترسی سریع به بخش‌های جدید */}

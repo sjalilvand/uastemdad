@@ -36,6 +36,7 @@ export default async function DocumentsPage() {
   });
 
   let documents = documentsRaw;
+  let groupNames: Map<string, string>;
   if (isTargetLocale(locale)) {
     const [titleMap, groupTr] = await Promise.all([
       translateBatch(
@@ -49,9 +50,9 @@ export default async function DocumentsPage() {
       title: titleMap.get(d.title.trim()) || d.title,
       description: titleMap.get(d.description.trim()) || d.description,
     }));
-    var groupNames = new Map(GROUPS.map((g, i) => [g.key, groupTr[i] || g.key]));
+    groupNames = new Map(GROUPS.map((g, i) => [g.key, groupTr[i] || g.key]));
   } else {
-    var groupNames = new Map(GROUPS.map((g) => [g.key, g.key]));
+    groupNames = new Map(GROUPS.map((g) => [g.key, g.key]));
   }
 
   return (

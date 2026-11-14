@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export async function GET() {
     return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 401 });
   }
   const rows = await db.setting.findMany();
-  const map: Record<string, string> = {};
+  // مقادیر پیش‌فرض به‌عنوان پایه؛ ردیف‌های دیتابیس روی آن سوار می‌شوند
+  // تا پنل مدیریت همیشه مقدارِ مؤثرِ فعلی را نشان دهد و ذخیرهٔ فرم،
+  // مقادیر پیش‌فرض را با رشتهٔ خالی بازنویسی نکند
+  const map: Record<string, string> = { ...DEFAULT_SETTINGS };
   for (const r of rows) map[r.key] = r.value;
   return NextResponse.json({ settings: map });
 }

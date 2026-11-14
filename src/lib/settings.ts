@@ -18,6 +18,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   statBooks: "35",
   statPrograms: "9",
   mapUrl: "https://www.google.com/maps?q=تهران+سی+متری+نیرو+هوایی",
+  // نام مکانی که روی کارت نقشه (صفحهٔ اصلی و تماس با ما) نمایش داده می‌شود؛
+  // خالی = نام پیش‌فرض بر اساس زبان انتخابی
+  mapDestName: "",
+  // راهنمای طبقات ساختمان در صفحهٔ تماس با ما؛ خالی = متن پیش‌فرض
+  buildingGuide: "",
   mapLat: "35.74041",
   mapLng: "51.49027",
   tickerEnabled: "1",
