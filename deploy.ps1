@@ -1,22 +1,29 @@
-﻿# ============================================================================
+﻿param([string]$Token = "")
+# ============================================================================
 #   استقرار کامل سامانهٔ «مرکز علمی–کاربردی کمیته امداد» روی ویندوز سرور
 #   دامنه:  https://uastemdad.ir      سرور: 94.182.131.94
-#   نحوهٔ اجرا: PowerShell را با Run as Administrator باز کنید و کل این
-#   اسکریپت را یک‌جا Paste کنید (یا ذخیره و اجرا: deploy.ps1)
+#
+#   نحوهٔ اجرا: PowerShell را با Run as Administrator باز کنید و فایل را اجرا کنید:
+#     powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1
 #
 #   این اسکریپت به‌صورت خودکار:
-#     ۱) Git و Node.js را (اگر نصب نیستند) نصب می‌کند
-#     ۲) آخرین نسخهٔ کد را از گیت‌هاب دریافت/به‌روزرسانی می‌کند
+#     ۰) اگر DNS سرور گیت‌هاب را باز نکند، DNS را با سرویس‌های شکن/الکترو/... اصلاح می‌کند
+#     ۱) Git و Node.js را (اگر نصب نیستند) از منبع اصلی + آینه‌های جایگزین نصب می‌کند
+#     ۲) آخرین نسخهٔ کد را در C:\uastemdad\app دریافت/به‌روزرسانی می‌کند
 #     ۳) وابستگی‌ها را نصب، دیتابیس را می‌سازد و پروژه را بیلد می‌کند
-#     ۴) سایت را به‌عنوان سرویس ویندوزی (خودکار-استارت و ضدِ ری‌استارت) اجرا می‌کند
-#     ۵) با Caddy، دامنه را روی HTTPS با گواهی رایگان Let's Encrypt فعال می‌کند
+#     ۴) برنامه و Caddy را به‌صورت «وظیفهٔ زمان‌بندی» ویندوز با استارت خودکار پس از
+#        ری‌استارت سرور و اجرای دوبارهٔ خودکار پس از خطا، بالا می‌آورد
+#     ۵) با Caddy دامنه را روی HTTPS با گواهی رایگان Let's Encrypt فعال می‌کند
 #
 #   به‌روزرسانی نسخه‌های بعدی: کافی است همین اسکریپت را دوباره اجرا کنید؛
-#   داده‌ها (اخبار، تنظیمات، فایل‌های آپلودی) حفظ می‌شوند.
+#   داده‌ها (اخبار، تنظیمات، فایل‌های آپلودی، دیتابیس) حفظ می‌شوند.
 #
 #   پیش‌نیازهای بیرونی (خارج از این سرور):
 #     • رکورد A دامنهٔ uastemdad.ir باید به 94.182.131.94 اشاره کند
 #     • پورت‌های 80 و 443 در شبکه/فایروال سازمان به این سرور باز باشند
+#
+#   نکته: اگر مخزن روزی خصوصی (private) شود، اسکریپت را این‌طور اجرا کنید:
+#     powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1 -Token ghp_...
 # ============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -25,17 +32,18 @@ $ProgressPreference    = "SilentlyContinue"
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 # ------------------------------ تنظیمات ------------------------------
-# توکن گیت‌هاب فقط وقتی لازم است که مخزن خصوصی (private) شود؛ الان عمومی است و خالی می‌ماند.
-$Token    = ""
-$RepoUrl  = "https://github.com/sjalilvand/uastemdad.git"
-$Domain   = "uastemdad.ir"
-$ServerIP = "94.182.131.94"
-$AppPort  = 3003
-$Root     = "C:\uastemdad"
-$ToolsDir = "$Root\tools"
-$LogsDir  = "$Root\logs"
-$SvcApp   = "uastemdad-app"
-$SvcProxy = "uastemdad-proxy"
+$RepoUrl   = "https://github.com/sjalilvand/uastemdad.git"
+$Domain    = "uastemdad.ir"
+$ServerIP  = "94.182.131.94"
+$AppPort   = 3003
+$Root      = "C:\uastemdad"        # اسکریپت‌ها، لاگ‌ها، دیتابیس، ابزارها
+$App       = "$Root\app"           # مخزن کد (git clone)
+$ToolsDir  = "$Root\tools"
+$LogsDir   = "$Root\logs"
+$TaskApp   = "uastemdad-app"
+$TaskProxy = "uastemdad-proxy"
+$GitVer    = "2.47.1"
+$NodeVer   = "22.14.0"
 
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
@@ -48,95 +56,227 @@ Write-Host ""
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "خطا: اسکریپت باید در PowerShell با دسترسی Administrator اجرا شود." -ForegroundColor Red
-    Write-Host "روی PowerShell راست‌کلیک → Run as Administrator → دوباره Paste کنید." -ForegroundColor Yellow
+    Write-Host "روی PowerShell راست‌کلیک → Run as Administrator → دوباره اجرا کنید." -ForegroundColor Yellow
     return
+}
+
+# ---------------------- ۰) اصلاح خودکار DNS (مخصوص سرورهای داخل ایران) ----------------------
+function Test-Resolve([string[]]$names) {
+    foreach ($n in $names) {
+        try { [void][System.Net.Dns]::GetHostAddresses($n) } catch { return $false }
+    }
+    return $true
+}
+
+function Set-DnsForAdapters([string[]]$servers) {
+    $adapters = @()
+    try {
+        $adapters = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Loopback' })
+    } catch {}
+    if ($adapters.Count -eq 0) { return }
+    try {
+        $adapters | Set-DnsClientServerAddress -ServerAddresses $servers -ErrorAction Stop | Out-Null
+        return
+    } catch {}
+    # روش جایگزین با netsh (در ویندوزهای قدیمی‌تر)
+    foreach ($a in $adapters) {
+        try { netsh interface ip delete dns name="$($a.Name)" all | Out-Null } catch {}
+        try { netsh interface ip set dns name="$($a.Name)" source=static addr=$($servers[0]) | Out-Null } catch {}
+        $idx = 2
+        for ($i = 1; $i -lt $servers.Count; $i++) {
+            try { netsh interface ip add dns name="$($a.Name)" addr=$($servers[$i]) index=$idx | Out-Null } catch {}
+            $idx++
+        }
+    }
+}
+
+$dnsHosts = @('github.com','raw.githubusercontent.com','api.github.com','objects.githubusercontent.com','nodejs.org','cdn.jsdelivr.net')
+if (-not (Test-Resolve $dnsHosts)) {
+    Write-Host "-> مشکل DNS: سرور نمی‌تواند آدرس‌های گیت‌هاب را باز کند — اصلاح خودکار DNS ..." -ForegroundColor Yellow
+    $dnsSets = @(
+        @('178.22.122.100','185.51.200.2'),
+        @('78.157.42.100','78.157.42.101'),
+        @('10.202.10.202','10.202.10.102'),
+        @('10.202.10.10','10.202.10.11'),
+        @('8.8.8.8','8.8.4.4','1.1.1.1')
+    )
+    $dnsFixed = $false
+    foreach ($set in $dnsSets) {
+        Write-Host "   تنظیم DNS روی: $($set -join ' , ')" -ForegroundColor DarkGray
+        Set-DnsForAdapters $set
+        try { Clear-DnsClientCache -ErrorAction SilentlyContinue } catch {}
+        cmd /c "ipconfig /flushdns >nul 2>&1"
+        Start-Sleep -Seconds 3
+        if (Test-Resolve $dnsHosts) {
+            Write-Host "OK  DNS اصلاح شد (سرویس: $($set -join ' , '))" -ForegroundColor Cyan
+            $dnsFixed = $true
+            break
+        }
+    }
+    if (-not $dnsFixed) {
+        Write-Host "هشدار: هیچ‌کدام از تنظیمات DNS جواب نداد؛ ادامه می‌دهیم. اگر دانلودها خطا دادند، فیلترینگ/فایروال سازمانی را بررسی کنید." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "OK  DNS سرور سالم است" -ForegroundColor Cyan
 }
 
 function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
 }
 
-function Download-File($url, $out) {
-    Write-Host "  دریافت: $url" -ForegroundColor DarkGray
-    Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $out
+function Download-File([string[]]$urls, [string]$out) {
+    foreach ($u in $urls) {
+        for ($try = 1; $try -le 3; $try++) {
+            try {
+                Write-Host "   دریافت (تلاش $try): $u" -ForegroundColor DarkGray
+                Invoke-WebRequest -UseBasicParsing -Uri $u -OutFile $out -TimeoutSec 900
+                if ((Get-Item $out -ErrorAction SilentlyContinue).Length -gt 0) { return $true }
+            } catch { Start-Sleep -Seconds 3 }
+        }
+    }
+    return $false
 }
 
 # ---------------------- ۲) نصب Git (در صورت نبود) ----------------------
+$GitExe = "Git-$GitVer-64-bit.exe"
 if (Get-Command git -ErrorAction SilentlyContinue) {
     Write-Host "OK  Git از قبل نصب است ($(git --version))" -ForegroundColor Cyan
 } else {
-    Write-Host "-> نصب Git for Windows ..." -ForegroundColor Yellow
-    $rel   = Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest"
-    $asset = $rel.assets | Where-Object { $_.name -match '^Git-.*-64-bit\.exe$' } | Select-Object -First 1
-    if (-not $asset) { Write-Host "خطا: پیدا کردن نصب‌کنندهٔ Git ناموفق بود؛ Git را دستی از git-scm.com نصب کنید." -ForegroundColor Red; return }
-    $installer = "$env:TEMP\$($asset.name)"
-    Download-File $asset.browser_download_url $installer
+    Write-Host "-> نصب Git for Windows $GitVer ..." -ForegroundColor Yellow
+    $installer = "$env:TEMP\$GitExe"
+    $ok = Download-File @(
+        "https://github.com/git-for-windows/git/releases/download/v$GitVer.windows.1/$GitExe",
+        "https://registry.npmmirror.com/-/binary/git-for-windows/v$GitVer.windows.1/$GitExe",
+        "https://mirrors.huaweicloud.com/git-for-windows/v$GitVer.windows.1/$GitExe"
+    ) $installer
+    if (-not $ok) {
+        Write-Host "خطا: دریافت نصب‌کنندهٔ Git ناموفق بود. Git را دستی از https://git-scm.com/download/win نصب کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
+        return
+    }
     Start-Process $installer -ArgumentList '/VERYSILENT','/NORESTART','/SUPPRESSMSGBOXES','/NOCANCEL' -Wait
+    $gitPath = "C:\Program Files\Git\cmd"
+    if (Test-Path $gitPath) {
+        $mp = [Environment]::GetEnvironmentVariable('Path','Machine')
+        if ($mp -notlike "*$gitPath*") {
+            [Environment]::SetEnvironmentVariable('Path', "$mp;$gitPath", 'Machine')
+        }
+    }
     Refresh-Path
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Host "خطا: نصب Git ناموفق بود." -ForegroundColor Red; return }
-    Write-Host "OK  Git نصب شد" -ForegroundColor Cyan
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host "خطا: نصب Git ناموفق بود." -ForegroundColor Red
+        return
+    }
+    Write-Host "OK  Git نصب شد ($(git --version))" -ForegroundColor Cyan
 }
 
 # ---------------------- ۳) نصب Node.js 22 LTS (در صورت نبود) ----------------------
 $needNode = $true
 if (Get-Command node -ErrorAction SilentlyContinue) {
-    $major = [int]((node --version) -replace '^v(\d+)\..*$','$1')
-    if ($major -ge 20) { $needNode = $false; Write-Host "OK  Node.js از قبل نصب است ($(node --version))" -ForegroundColor Cyan }
+    try {
+        $major = [int]((node --version) -replace '^v(\d+)\..*$', '$1')
+        if ($major -ge 20) {
+            $needNode = $false
+            Write-Host "OK  Node.js از قبل نصب است ($(node --version))" -ForegroundColor Cyan
+        }
+    } catch {}
 }
 if ($needNode) {
-    Write-Host "-> نصب Node.js 22 LTS (چند دقیقه) ..." -ForegroundColor Yellow
-    $listing = (Invoke-WebRequest -UseBasicParsing "https://nodejs.org/dist/latest-v22.x/").Content
-    if ($listing -match 'node-(v22\.\d+\.\d+)-x64\.msi') {
-        $ver = $Matches[1]
-        $msi = "$env:TEMP\node-$ver-x64.msi"
-        Download-File "https://nodejs.org/dist/latest-v22.x/node-$ver-x64.msi" $msi
-        $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
-        if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { Write-Host "خطا: نصب Node.js ناموفق بود (کد $($p.ExitCode))." -ForegroundColor Red; return }
-        Refresh-Path
-        Write-Host "OK  Node.js $($ver) نصب شد ($(node --version))" -ForegroundColor Cyan
-    } else {
-        Write-Host "خطا: پیدا کردن نسخهٔ Node.js ناموفق بود؛ دستی از nodejs.org نسخهٔ ۲۲ LTS را نصب کنید." -ForegroundColor Red
+    Write-Host "-> نصب Node.js v$NodeVer LTS (چند دقیقه) ..." -ForegroundColor Yellow
+    $msi = "$env:TEMP\node-$NodeVer-x64.msi"
+    $ok = Download-File @(
+        "https://nodejs.org/dist/v$NodeVer/node-v$NodeVer-x64.msi",
+        "https://registry.npmmirror.com/-/binary/node/v$NodeVer/node-v$NodeVer-x64.msi",
+        "https://mirrors.huaweicloud.com/nodejs/v$NodeVer/node-v$NodeVer-x64.msi",
+        "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v$NodeVer/node-v$NodeVer-x64.msi"
+    ) $msi
+    if (-not $ok) {
+        Write-Host "خطا: دریافت Node.js ناموفق بود؛ دستی از https://nodejs.org نسخهٔ LTS را نصب کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
         return
     }
+    $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
+    if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
+        Write-Host "خطا: نصب Node.js ناموفق بود (کد $($p.ExitCode))." -ForegroundColor Red
+        return
+    }
+    Refresh-Path
+    Write-Host "OK  Node.js نصب شد ($(node --version))" -ForegroundColor Cyan
 }
 $NodeExe = (Get-Command node).Path
 
 # ---------------------- ۴) دریافت کد از گیت‌هاب ----------------------
-Write-Host "-> دریافت آخرین نسخهٔ کد از گیت‌هاب ..." -ForegroundColor Yellow
-$useToken = ($Token -ne "")
-$TokenUrl = "https://$Token@github.com/sjalilvand/uastemdad.git"
-if (Test-Path "$Root\.git") {
-    git -C $Root fetch origin
-    if ($LASTEXITCODE -ne 0 -and $useToken) {
-        git -C $Root remote set-url origin $TokenUrl
-        git -C $Root fetch origin
-    }
-    git -C $Root reset --hard origin/main
-    Write-Host "OK  نسخهٔ قبلی یافت شد و به آخرین نسخهٔ گیت‌هاب به‌روزرسانی شد" -ForegroundColor Cyan
-} elseif (Test-Path $Root) {
-    Write-Host "خطا: پوشهٔ $Root از قبل وجود دارد ولی مخزن گیت نیست؛ آن را تغییرنام/خالی کنید یا مسیر `\$Root را در ابتدای اسکریپت عوض کنید." -ForegroundColor Red
-    return
-} else {
-    git clone $RepoUrl $Root
-    if ($LASTEXITCODE -ne 0 -and $useToken) { git clone $TokenUrl $Root }
-    if ($LASTEXITCODE -ne 0) { Write-Host "خطا: clone از گیت‌هاب ناموفق بود (اینترنت را بررسی کنید)." -ForegroundColor Red; return }
-    if ($useToken) { git -C $Root remote set-url origin $TokenUrl }
-    Write-Host "OK  کد در $Root دریافت شد" -ForegroundColor Cyan
-}
-Set-Location $Root
+Write-Host "-> دریافت/به‌روزرسانی کد از گیت‌هاب در $App ..." -ForegroundColor Yellow
+$gitUrl = $RepoUrl
+if ($Token -ne "") { $gitUrl = "https://$Token@github.com/sjalilvand/uastemdad.git" }
+$cloneDone = $false
 
-# ---------------------- ۵) نصب وابستگی‌ها ----------------------
+if (Test-Path "$App\.git") {
+    $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    git -C $App fetch origin
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   تلاش دوباره برای fetch ..." -ForegroundColor DarkGray
+        Start-Sleep -Seconds 5
+        git -C $App fetch origin
+    }
+    if ($LASTEXITCODE -ne 0 -and $Token -ne "") {
+        git -C $App remote set-url origin $gitUrl
+        git -C $App fetch origin
+    }
+    $fetchRc = $LASTEXITCODE
+    $ErrorActionPreference = $prev
+    if ($fetchRc -ne 0) {
+        Write-Host "خطا: به‌روزرسانی از گیت‌هاب ناموفق بود (اینترنت/DNS را بررسی کنید) و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
+        return
+    }
+    git -C $App reset --hard origin/main
+    Write-Host "OK  کد به آخرین نسخهٔ گیت‌هاب به‌روز شد" -ForegroundColor Cyan
+    $cloneDone = $true
+} elseif (Test-Path $App) {
+    $bak = "$App-backup-" + (Get-Date -Format 'yyyyMMdd-HHmmss')
+    Write-Host "   پوشهٔ app بدون مخزن گیت است — به $bak منتقل می‌شود" -ForegroundColor DarkGray
+    Move-Item $App $bak -Force
+}
+
+if (-not $cloneDone) {
+    $cloned = $false
+    $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    for ($try = 1; $try -le 3; $try++) {
+        Write-Host "   clone (تلاش $try) ..." -ForegroundColor DarkGray
+        git clone --depth 1 $gitUrl $App
+        if ($LASTEXITCODE -eq 0) { $cloned = $true; break }
+        Start-Sleep -Seconds 5
+    }
+    $ErrorActionPreference = $prev
+    if (-not $cloned) {
+        Write-Host "خطا: clone از گیت‌هاب ناموفق بود. اینترنت/DNS را بررسی کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
+        return
+    }
+    Write-Host "OK  کد در $App دریافت شد" -ForegroundColor Cyan
+}
+Set-Location $App
+
+# ---------------------- ۵) توقف سرویس قبلی (برای به‌روزرسانی امن) ----------------------
+cmd /c "schtasks /End /TN $TaskApp >nul 2>&1"
+cmd /c "taskkill /F /IM node.exe >nul 2>&1"
+
+# ---------------------- ۶) نصب وابستگی‌ها ----------------------
 Write-Host "-> نصب وابستگی‌ها (npm install — چند دقیقه) ..." -ForegroundColor Yellow
 npm install --no-audit --no-fund
-if ($LASTEXITCODE -ne 0) { Write-Host "خطا در نصب وابستگی‌ها." -ForegroundColor Red; return }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "   تلاش دوباره با رجیستری جایگزین (npmmirror) ..." -ForegroundColor Yellow
+    npm install --no-audit --no-fund --registry=https://registry.npmmirror.com
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "خطا در نصب وابستگی‌ها — اینترنت را بررسی کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
+        return
+    }
+}
+Write-Host "OK  وابستگی‌ها نصب شد" -ForegroundColor Cyan
 
-# ---------------------- ۶) فایل .env و پوشه‌های داده ----------------------
-New-Item -ItemType Directory -Force -Path "$Root\db","$Root\data\uploads","$Root\logs" | Out-Null
+# ---------------------- ۷) فایل .env و پوشه‌های داده ----------------------
+New-Item -ItemType Directory -Force -Path "$Root\db","$Root\data\uploads","$LogsDir","$ToolsDir" | Out-Null
 $dbUrl = "file:C:/uastemdad/db/custom.db"
-$envContent = 
 $authSecret = $null
-if (Test-Path "$Root\.env") {
-    foreach ($line in Get-Content "$Root\.env") {
+if (Test-Path "$App\.env") {
+    foreach ($line in Get-Content "$App\.env") {
         if ($line -match '^AUTH_SECRET=(.+)$') { $authSecret = $Matches[1] }
     }
 }
@@ -148,8 +288,7 @@ UPLOAD_DIR=C:/uastemdad/data/uploads
 NEXT_TELEMETRY_DISABLED=1
 NODE_ENV=production
 "@
-# .env باید بدون BOM نوشته شود
-[System.IO.File]::WriteAllText("$Root\.env", ($envContent -replace "\r\n","\n"))
+[System.IO.File]::WriteAllText("$App\.env", ($envContent -replace "`r`n", "`n"))
 # متغیرها برای همین نشست (prisma / seed / build)
 $env:DATABASE_URL = $dbUrl
 $env:AUTH_SECRET  = $authSecret
@@ -157,26 +296,27 @@ $env:UPLOAD_DIR   = "C:/uastemdad/data/uploads"
 $env:NEXT_TELEMETRY_DISABLED = "1"
 Write-Host "OK  فایل .env و پوشه‌های داده آماده شد" -ForegroundColor Cyan
 
-# ---------------------- ۷) ساخت دیتابیس و داده‌های اولیه ----------------------
+# ---------------------- ۸) ساخت دیتابیس و داده‌های اولیه ----------------------
 Write-Host "-> همگام‌سازی دیتابیس (prisma) ..." -ForegroundColor Yellow
 npx prisma generate
 if ($LASTEXITCODE -ne 0) { Write-Host "خطا در prisma generate." -ForegroundColor Red; return }
 npx prisma db push --accept-data-loss
 if ($LASTEXITCODE -ne 0) { Write-Host "خطا در ساخت دیتابیس." -ForegroundColor Red; return }
-Write-Host "-> داده‌های اولیه (اگر قبلاً نصب شده، داده‌ها حفظ می‌شود) ..." -ForegroundColor Yellow
+Write-Host "-> داده‌های اولیه (حالت ارتقا — داده‌های قبلی حفظ می‌شود) ..." -ForegroundColor Yellow
 npx tsx prisma/seed.ts
 if ($LASTEXITCODE -ne 0) { Write-Host "خطا در داده‌های اولیه." -ForegroundColor Red; return }
 
-# ---------------------- ۸) بیلد نسخهٔ production ----------------------
+# ---------------------- ۹) بیلد نسخهٔ production ----------------------
 Write-Host "-> بیلد نسخهٔ production (چند دقیقه — پنجره را نبندید) ..." -ForegroundColor Yellow
 $env:NODE_OPTIONS = "--max-old-space-size=4096"
 npm run build
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$Root\.next\standalone\server.js")) {
-    Write-Host "خطا در بیلد پروژه." -ForegroundColor Red; return
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$App\.next\standalone\server.js")) {
+    Write-Host "خطا در بیلد پروژه." -ForegroundColor Red
+    return
 }
 Write-Host "OK  بیلد کامل شد" -ForegroundColor Cyan
 
-# ---------------------- ۹) آزادسازی پورت‌های 80 و 443 ----------------------
+# ---------------------- ۱۰) آزادسازی پورت‌های 80 و 443 ----------------------
 Write-Host "-> بررسی پورت‌های 80 و 443 ..." -ForegroundColor Yellow
 $iis = Get-Service W3SVC -ErrorAction SilentlyContinue
 if ($iis -and $iis.Status -eq 'Running') {
@@ -192,53 +332,63 @@ $busy = Get-NetTCPConnection -LocalPort 80,443 -State Listen -ErrorAction Silent
 if ($busy) {
     $names = $busy | ForEach-Object { (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName } | Sort-Object -Unique
     Write-Host "خطا: پورت‌های 80/443 توسط این برنامه‌ها اشغال‌اند: $($names -join ', ')" -ForegroundColor Red
-    Write-Host "برنامهٔ فوق را متوقف/تنظیم کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Yellow
+    Write-Host "برنامهٔ فوق را متوقف کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Yellow
     return
 }
 Write-Host "OK  پورت‌های 80 و 443 آزاد هستند" -ForegroundColor Cyan
 
-# ---------------------- ۱۰) قواعد فایروال ----------------------
+# ---------------------- ۱۱) قواعد فایروال ----------------------
 Remove-NetFirewallRule -DisplayName "Uastemdad HTTP"  -ErrorAction SilentlyContinue
 Remove-NetFirewallRule -DisplayName "Uastemdad HTTPS" -ErrorAction SilentlyContinue
-New-NetFirewallRule -DisplayName "Uastemdad HTTP"  -Direction Inbound -Protocol TCP -LocalPort 80  -Action Allow | Out-Null
-New-NetFirewallRule -DisplayName "Uastemdad HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow | Out-Null
-Write-Host "OK  فایروال ویندوز برای پورت‌های 80 و 443 باز شد" -ForegroundColor Cyan
+Remove-NetFirewallRule -DisplayName "Uastemdad App"   -ErrorAction SilentlyContinue
+New-NetFirewallRule -DisplayName "Uastemdad HTTP"  -Direction Inbound -Protocol TCP -LocalPort 80    -Action Allow | Out-Null
+New-NetFirewallRule -DisplayName "Uastemdad HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443   -Action Allow | Out-Null
+New-NetFirewallRule -DisplayName "Uastemdad App"   -Direction Inbound -Protocol TCP -LocalPort 3003 -Action Allow | Out-Null
+Write-Host "OK  فایروال ویندوز برای پورت‌های 80، 443 و 3003 باز شد" -ForegroundColor Cyan
 
-# ---------------------- ۱۱) نصب NSSM و سرویس ویندوزی برنامه ----------------------
-Write-Host "-> نصب سرویس ویندوزی برنامه ..." -ForegroundColor Yellow
-New-Item -ItemType Directory -Force -Path $ToolsDir | Out-Null
-$nssmZip = "$env:TEMP\nssm-2.24.zip"
-Download-File "https://nssm.cc/release/nssm-2.24.zip" $nssmZip
-Expand-Archive -Path $nssmZip -DestinationPath "$env:TEMP\nssm" -Force
-$Nssm = "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe"
-if (-not (Test-Path $Nssm)) { Write-Host "خطا: دریافت NSSM ناموفق بود." -ForegroundColor Red; return }
-Copy-Item $Nssm "$ToolsDir\nssm.exe" -Force
-$Nssm = "$ToolsDir\nssm.exe"
-
-foreach ($svc in @($SvcApp, $SvcProxy)) {
-    if (Get-Service $svc -ErrorAction SilentlyContinue) {
-        & $Nssm stop $svc | Out-Null
-        & $Nssm remove $svc confirm | Out-Null
-    }
+# ---------------------- ۱۲) دانلود Caddy برای HTTPS دامنه ----------------------
+Write-Host "-> دریافت Caddy (گواهی HTTPS رایگان و خودکار Let's Encrypt) ..." -ForegroundColor Yellow
+cmd /c "schtasks /End /TN $TaskProxy >nul 2>&1"
+cmd /c "taskkill /F /IM caddy.exe >nul 2>&1"
+$caddyOk = Download-File @(
+    "https://github.com/caddyserver/caddy/releases/latest/download/caddy_windows_amd64.exe",
+    "https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_windows_amd64.exe"
+) "$ToolsDir\caddy.exe"
+if (-not $caddyOk) {
+    Write-Host "هشدار: دریافت Caddy ناموفق بود — HTTPS فعلاً فعال نمی‌شود. سایت روی http://${ServerIP}:3003 کار می‌کند؛ بعداً همین اسکریپت را دوباره اجرا کنید." -ForegroundColor Yellow
 }
 
-& $Nssm install $SvcApp $NodeExe "$Root\scripts\start-3003.js"
-& $Nssm set $SvcApp AppDirectory $Root
-& $Nssm set $SvcApp Description "Saman-e UAST Em Dad - Next.js (port $AppPort)"
-& $Nssm set $SvcApp AppStdout "$LogsDir\app.log"
-& $Nssm set $SvcApp AppStderr "$LogsDir\app-err.log"
-& $Nssm set $SvcApp AppRotateFiles 1
-& $Nssm set $SvcApp AppRotateBytes 10485760
-& $Nssm set $SvcApp Start SERVICE_AUTO_START
-& $Nssm set $SvcApp AppEnvironmentExtra "NODE_ENV=production" "PORT=$AppPort" "HOSTNAME=127.0.0.1" "DATABASE_URL=$dbUrl" "AUTH_SECRET=$authSecret" "UPLOAD_DIR=C:/uastemdad/data/uploads" "NEXT_TELEMETRY_DISABLED=1"
-& $Nssm start $SvcApp
-Write-Host "OK  سرویس برنامهٔ '$SvcApp' نصب و اجرا شد (استارت خودکار پس از ری‌استارت سرور)" -ForegroundColor Cyan
+# ---------------------- ۱۳) فایل‌های اجرا و راه‌اندازی خودکار ----------------------
+$runAppCmd = @"
+@echo off
+rem auto-generated by deploy.ps1
+cd /d $App
+set NODE_ENV=production
+set PORT=$AppPort
+set HOSTNAME=127.0.0.1
+set DATABASE_URL=$dbUrl
+set AUTH_SECRET=$authSecret
+set UPLOAD_DIR=C:/uastemdad/data/uploads
+set NEXT_TELEMETRY_DISABLED=1
+:loop
+if exist "$LogsDir\app.log" for %%A in ("$LogsDir\app.log") do if %%~zA GTR 10485760 move /y "$LogsDir\app.log" "$LogsDir\app.old.log" >nul
+"$NodeExe" scripts\start-3003.js >> "$LogsDir\app.log" 2>&1
+timeout /t 5 /nobreak >nul
+goto loop
+"@
+[System.IO.File]::WriteAllText("$Root\run-app.cmd", $runAppCmd)
 
-# ---------------------- ۱۲) نصب Caddy برای HTTPS دامنه ----------------------
-Write-Host "-> نصب Caddy (گواهی HTTPS رایگان و خودکار Let's Encrypt) ..." -ForegroundColor Yellow
-Download-File "https://github.com/caddyserver/caddy/releases/latest/download/caddy_windows_amd64.exe" "$ToolsDir\caddy.exe"
+$restartAppCmd = @"
+@echo off
+schtasks /End /TN "$TaskApp" >nul 2>&1
+taskkill /F /IM node.exe >nul 2>&1
+schtasks /Run /TN "$TaskApp" >nul 2>&1
+echo Application restarted - wait about one minute.
+"@
+[System.IO.File]::WriteAllText("$Root\restart-app.cmd", $restartAppCmd)
 
-$Caddyfile = @"
+if ($caddyOk) {
+    $Caddyfile = @"
 {
         admin off
 }
@@ -250,24 +400,49 @@ $Domain {
 
 # اگر برای www هم رکورد DNS تعریف کردید، این بخش را از حالت کامنت خارج کنید:
 # www.$Domain {
-#       redir https://$Domain{uri} permanent
+#         redir https://$Domain{uri} permanent
 # }
 "@
-# Caddyfile باید بدون BOM و با خط‌های LF نوشته شود تا Caddy درست بخواند
-[System.IO.File]::WriteAllText("$Root\Caddyfile", ($Caddyfile -replace "`r`n","`n"))
+    [System.IO.File]::WriteAllText("$Root\Caddyfile", ($Caddyfile -replace "`r`n", "`n"))
 
-& $Nssm install $SvcProxy "$ToolsDir\caddy.exe" "run --config $Root\Caddyfile"
-& $Nssm set $SvcProxy AppDirectory $Root
-& $Nssm set $SvcProxy Description "Caddy reverse proxy - HTTPS for $Domain"
-& $Nssm set $SvcProxy AppStdout "$LogsDir\caddy.log"
-& $Nssm set $SvcProxy AppStderr "$LogsDir\caddy-err.log"
-& $Nssm set $SvcProxy AppRotateFiles 1
-& $Nssm set $SvcProxy AppRotateBytes 10485760
-& $Nssm set $SvcProxy Start SERVICE_AUTO_START
-& $Nssm start $SvcProxy
-Write-Host "OK  سرویس HTTPS '$SvcProxy' نصب و اجرا شد" -ForegroundColor Cyan
+    $runCaddyCmd = @"
+@echo off
+rem auto-generated by deploy.ps1
+cd /d $Root
+:loop
+if exist "$LogsDir\caddy.log" for %%A in ("$LogsDir\caddy.log") do if %%~zA GTR 10485760 move /y "$LogsDir\caddy.log" "$LogsDir\caddy.old.log" >nul
+"$ToolsDir\caddy.exe" run --config "$Root\Caddyfile" >> "$LogsDir\caddy.log" 2>&1
+timeout /t 5 /nobreak >nul
+goto loop
+"@
+    [System.IO.File]::WriteAllText("$Root\run-caddy.cmd", $runCaddyCmd)
 
-# ---------------------- ۱۳) بررسی سلامت ----------------------
+    $restartCaddyCmd = @"
+@echo off
+schtasks /End /TN "$TaskProxy" >nul 2>&1
+taskkill /F /IM caddy.exe >nul 2>&1
+schtasks /Run /TN "$TaskProxy" >nul 2>&1
+echo Caddy restarted.
+"@
+    [System.IO.File]::WriteAllText("$Root\restart-caddy.cmd", $restartCaddyCmd)
+}
+Write-Host "OK  فایل‌های اجرا ساخته شدند (run-app.cmd / run-caddy.cmd / restart-app.cmd / restart-caddy.cmd)" -ForegroundColor Cyan
+
+# ---------------------- ۱۴) ساخت «وظیفهٔ زمان‌بندی» ویندوز (استارت خودکار پس از ری‌استارت) ----------------------
+Write-Host "-> ساخت وظایف زمان‌بندی و اجرا ..." -ForegroundColor Yellow
+schtasks /Create /F /TN $TaskApp /TR "$Root\run-app.cmd" /SC ONSTART /RU SYSTEM /RL HIGHEST
+if ($LASTEXITCODE -ne 0) { Write-Host "خطا در ساخت وظیفهٔ برنامه ($TaskApp)." -ForegroundColor Red; return }
+schtasks /Run /TN $TaskApp
+Write-Host "OK  وظیفهٔ برنامهٔ '$TaskApp' اجرا شد (پس از هر ری‌استارت سرور هم خودکار اجرا می‌شود)" -ForegroundColor Cyan
+
+if ($caddyOk) {
+    schtasks /Create /F /TN $TaskProxy /TR "$Root\run-caddy.cmd" /SC ONSTART /RU SYSTEM /RL HIGHEST
+    if ($LASTEXITCODE -ne 0) { Write-Host "خطا در ساخت وظیفهٔ HTTPS ($TaskProxy)." -ForegroundColor Red; return }
+    schtasks /Run /TN $TaskProxy
+    Write-Host "OK  وظیفهٔ HTTPS '$TaskProxy' اجرا شد" -ForegroundColor Cyan
+}
+
+# ---------------------- ۱۵) بررسی سلامت ----------------------
 Write-Host "-> بررسی سلامت ..." -ForegroundColor Yellow
 $okLocal = $false
 foreach ($i in 1..30) {
@@ -276,47 +451,57 @@ foreach ($i in 1..30) {
         if ($r.StatusCode -eq 200) { $okLocal = $true; break }
     } catch { Start-Sleep -Seconds 3 }
 }
-if ($okLocal) { Write-Host "OK  برنامه روی پورت $AppPort در حال سرویس‌دهی است" -ForegroundColor Cyan }
-else { Write-Host "هشدار: برنامه هنوز پاسخ نمی‌دهد — لاگ: $LogsDir\app-err.log" -ForegroundColor Yellow }
+if ($okLocal) {
+    Write-Host "OK  برنامه روی پورت $AppPort در حال سرویس‌دهی است" -ForegroundColor Cyan
+} else {
+    Write-Host "هشدار: برنامه هنوز پاسخ نمی‌دهد — لاگ: $LogsDir\app.log | راه‌اندازی دوباره: $Root\restart-app.cmd" -ForegroundColor Yellow
+}
 
-# بررسی DNS
+# بررسی DNS دامنه
 try {
     $dns = (Resolve-DnsName $Domain -Type A -ErrorAction Stop | Where-Object { $_.IPAddress } | Select-Object -First 1).IPAddress
-    if ($dns -eq $ServerIP) { Write-Host "OK  دامنهٔ $Domain درست به $ServerIP اشاره می‌کند" -ForegroundColor Cyan }
-    else { Write-Host "هشدار: دامنهٔ $Domain الان به $dns اشاره می‌کند نه $ServerIP — رکورد A را در پنل دامنه اصلاح کنید. تا اصلاح DNS، گواهی HTTPS صادر نمی‌شود." -ForegroundColor Yellow }
+    if ($dns -eq $ServerIP) {
+        Write-Host "OK  دامنهٔ $Domain درست به $ServerIP اشاره می‌کند" -ForegroundColor Cyan
+    } else {
+        Write-Host "هشدار: دامنهٔ $Domain الان به $dns اشاره می‌کند نه $ServerIP — رکورد A را در پنل دامنه اصلاح کنید. تا اصلاح DNS، گواهی HTTPS صادر نمی‌شود." -ForegroundColor Yellow
+    }
 } catch {
-    Write-Host "هشدار: هنوز رکوردی برای $Domain پیدا نشد — در پنل دامنه، رکورد A  با مقدار $ServerIP بسازید." -ForegroundColor Yellow
+    Write-Host "هشدار: هنوز رکوردی برای $Domain پیدا نشد — در پنل دامنه، رکورد A با مقدار $ServerIP بسازید." -ForegroundColor Yellow
 }
 
 # بررسی HTTPS (اگر DNS تازه تنظیم شده باشد ممکن است چند دقیقه طول بکشد)
-try {
-    if (-not ("TrustAll" -as [type])) {
-        Add-Type -TypeDefinition "public static class TrustAll { public static void Set() { System.Net.ServicePointManager.ServerCertificateValidationCallback = (s,c,ch,e) => true; } }"
+if ($caddyOk) {
+    try {
+        if (-not ("TrustAll" -as [type])) {
+            Add-Type -TypeDefinition "public static class TrustAll { public static void Set() { System.Net.ServicePointManager.ServerCertificateValidationCallback = (s,c,ch,e) => true; } }"
+        }
+        [TrustAll]::Set()
+        $r = Invoke-WebRequest -UseBasicParsing -Uri "https://$Domain/" -TimeoutSec 20
+        Write-Host "OK  سایت از طریق https://$Domain بالا آمده است" -ForegroundColor Green
+    } catch {
+        Write-Host "هشدار: https://$Domain هنوز پاسخ نمی‌دهد. اگر DNS تازه تنظیم شده، طی ۵ تا ۳۰ دقیقه به‌صورت خودکار آماده می‌شود؛ Caddy خودش گواهی را می‌گیرد. لاگ: $LogsDir\caddy.log" -ForegroundColor Yellow
     }
-    [TrustAll]::Set()
-    $r = Invoke-WebRequest -UseBasicParsing -Uri "https://$Domain/" -TimeoutSec 20
-    Write-Host "OK  سایت از طریق https://$Domain بالا آمده است" -ForegroundColor Green
-} catch {
-    Write-Host "هشدار: https://$Domain هنوز پاسخ نمی‌دهد. اگر DNS تازه تنظیم شده، طی ۵ تا ۳۰ دقیقه (پس از انتشار DNS) به‌صورت خودکار آماده می‌شود؛ Caddy خودش گواهی را می‌گیرد و سرویس را دوباره راه می‌اندازد." -ForegroundColor Yellow
 }
 
-# ---------------------- ۱۴) خلاصهٔ نهایی ----------------------
+# ---------------------- ۱۶) خلاصهٔ نهایی ----------------------
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
 Write-Host "  استقرار کامل شد!"                              -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
-Write-Host "  آدرس سایت:        https://$Domain"              -ForegroundColor Yellow
-Write-Host "  پنل مدیریت:      https://$Domain/admin"         -ForegroundColor Yellow
+Write-Host "  آدرس سایت:        https://$Domain"                 -ForegroundColor Yellow
+Write-Host "  دسترسی موقت:      http://${ServerIP}:$AppPort  (تا وقتی DNS دامنه تنظیم نشده)" -ForegroundColor Yellow
+Write-Host "  پنل مدیریت:      https://$Domain/admin"           -ForegroundColor Yellow
 Write-Host "  ورود مدیر:       admin / admin123  (بعد از اولین ورود تغییر دهید)" -ForegroundColor Yellow
-Write-Host "  پوشهٔ برنامه:    $Root"                         -ForegroundColor Yellow
-Write-Host "  لاگ برنامه:      $LogsDir\app.log"              -ForegroundColor Yellow
-Write-Host "  لاگ HTTPS:       $LogsDir\caddy.log"            -ForegroundColor Yellow
-Write-Host "  سرویس‌ها:        $SvcApp  +  $SvcProxy"         -ForegroundColor Yellow
+Write-Host "  پوشهٔ برنامه:    $App"                            -ForegroundColor Yellow
+Write-Host "  دیتابیس:         $Root\db\custom.db  (SQLite)"    -ForegroundColor Yellow
+Write-Host "  فایل‌های آپلودی: $Root\data\uploads"              -ForegroundColor Yellow
+Write-Host "  لاگ برنامه:      $LogsDir\app.log"                -ForegroundColor Yellow
+Write-Host "  لاگ HTTPS:       $LogsDir\caddy.log"              -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  نکته‌های مهم:" -ForegroundColor White
 Write-Host "   • به‌روزرسانی نسخهٔ جدید: همین اسکریپت را دوباره اجرا کنید (داده‌ها حفظ می‌شود)."
-Write-Host "   • ری‌استارت سرویس‌ها:  Restart-Service $SvcApp   یا   Restart-Service $SvcProxy"
-Write-Host "   • توقف/اجرای دستی:     Stop-Service $SvcApp    /    Start-Service $SvcApp"
-Write-Host "   • حذف کامل:            & `"$ToolsDir\nssm.exe`" remove $SvcApp confirm   و   & `"$ToolsDir\nssm.exe`" remove $SvcProxy confirm"
-Write-Host "   • امنیت: توکن گیت‌هاب در این اسکریپت ذخیره نمی‌شود (مخزن عمومی است)؛ توکن‌های استفاده‌شده در گفتگو را بعد از استقرار از حساب گیت‌هاب بچرخانید (Settings > Developer settings > Tokens)."
+Write-Host "   • ری‌استارت برنامه:  $Root\restart-app.cmd     ری‌استارت HTTPS:  $Root\restart-caddy.cmd"
+Write-Host "   • دیدن وظایف:       schtasks /query /tn $TaskApp  و  schtasks /query /tn $TaskProxy"
+Write-Host "   • پاک‌کردن لاگ‌ها:   echo. > `"$LogsDir\app.log`""
+Write-Host "   • امنیت: توکن گیت‌هاب در این اسکریپت ذخیره نمی‌شود؛ توکن‌های استفاده‌شده در گفتگو را بعد از استقرار از حساب گیت‌هاب بچرخانید (Settings > Developer settings > Tokens)."
 Write-Host ""
