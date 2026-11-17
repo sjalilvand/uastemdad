@@ -21,12 +21,14 @@
 **PowerShell را با Run as Administrator باز کنید** و این دستور را یک‌جا Paste کنید:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; foreach($a in (Get-NetAdapter | ? Status -eq 'Up')) { netsh interface ip delete dns name="$($a.Name)" all; netsh interface ip set dns name="$($a.Name)" source=static addr=178.22.122.100; netsh interface ip add dns name="$($a.Name)" addr=185.51.200.2 index=2 }; ipconfig /flushdns; New-Item -ItemType Directory -Force -Path C:\uastemdad | Out-Null; try { Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/sjalilvand/uastemdad/main/deploy.ps1' -OutFile C:\uastemdad\deploy.ps1 } catch { Invoke-WebRequest -UseBasicParsing 'https://cdn.jsdelivr.net/gh/sjalilvand/uastemdad@main/deploy.ps1' -OutFile C:\uastemdad\deploy.ps1 }; powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1
+Set-ExecutionPolicy Bypass -Scope Process -Force; foreach($a in (Get-NetAdapter | ? Status -eq 'Up')) { netsh interface ip set dns name="$($a.Name)" source=static addr=178.22.122.100 validate=no; netsh interface ip add dns name="$($a.Name)" addr=185.51.200.2 index=2 validate=no; netsh interface ip add dns name="$($a.Name)" addr=8.8.8.8 index=3 validate=no }; ipconfig /flushdns; New-Item -ItemType Directory -Force -Path C:\uastemdad | Out-Null; try { Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/sjalilvand/uastemdad/main/deploy.ps1' -OutFile C:\uastemdad\deploy.ps1 } catch { try { Invoke-WebRequest -UseBasicParsing 'https://cdn.jsdelivr.net/gh/sjalilvand/uastemdad@main/deploy.ps1' -OutFile C:\uastemdad\deploy.ps1 } catch { Add-Content "$env:SystemRoot\System32\drivers\etc\hosts" "`n140.82.121.4 github.com"; Add-Content "$env:SystemRoot\System32\drivers\etc\hosts" "140.82.121.6 api.github.com"; Add-Content "$env:SystemRoot\System32\drivers\etc\hosts" "185.199.108.133 raw.githubusercontent.com"; ipconfig /flushdns | Out-Null; Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/sjalilvand/uastemdad/main/deploy.ps1' -OutFile C:\uastemdad\deploy.ps1 } }; powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1
 ```
 
-این دستور اول DNS سرور را اصلاح می‌کند (مشکل رایج سرورهای داخل ایران)، بعد
-اسکریپت استقرار را از گیت‌هاب دریافت می‌کند (اگر `raw.githubusercontent.com`
-باز نشد، از آینهٔ jsDelivr) و اجرایش می‌کند.
+این دستور اول DNS سرور را تنظیم می‌کند (**validate=no** مهم است — بدون آن ویندوز
+دستور ست‌کردن DNS را با خطای «The configured DNS server is incorrect or does not
+exist» رد می‌کند)، بعد اسکریپت استقرار را از گیت‌هاب می‌گیرد — به‌ترتیب از سه مسیر:
+`raw.githubusercontent.com` → آینهٔ `jsDelivr` → اگر هر دو باز نشد، با نوشتن IPهای
+گیت‌هاب در فایل `hosts`.
 
 اسکریپتِ دریافت‌شده هم در ابتدای اجرا، سلامت DNS را خودش بررسی و در صورت لزوم
 اصلاح می‌کند؛ پس حتی بدون مرحلهٔ اول هم معمولاً جواب می‌دهد.
@@ -56,28 +58,28 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; foreach($a in (Get-NetAdapter 
 
 ---
 
-## عیب‌یابی DNS سرور (پیام The remote name could not be resolved)
+## عیب‌یابی DNS سرور (پیام‌های could not be resolved / configured DNS server is incorrect)
 
 اگر روی سرور این پیام‌ها را می‌بینید:
 
 ```
 Invoke-WebRequest : The remote name could not be resolved: 'raw.githubusercontent.com'
-Invoke-RestMethod : The remote name could not be resolved: 'api.github.com'
+The configured DNS server is incorrect or does not exist.
+There are no Domain Name Servers (DNS) configured on this computer.
 ```
 
-یعنی DNS اینترنت سرور، آدرس‌های گیت‌هاب را باز نمی‌کند (مشکل رایج در ایران).
-سه راه‌حل:
+معنی‌اش این است که سرور اصلاً DNS کارکردی ندارد (خیلی رایج در سرورهای مجازی
+ایرانی — تنظیمات شبکهٔ اولیه بدون DNS تحویل داده می‌شود) یا DNS آن گیت‌هاب را
+باز نمی‌کند. سه نکته:
 
-**۱) دستور سریع بالا را اجرا کنید** — DNS را روی سرویس شکن تنظیم و سپس همه‌چیز
-را نصب می‌کند.
-
-**۲) تنظیم دستی DNS (سرویس‌های ایرانی بازکنندهٔ تحریم):**
+**۱) در netsh حتماً `validate=no` باشد.** بدون آن ویندوز می‌خواهد سرور DNS را
+اول امتحان کند و چون به آن نمی‌رسد، کل دستور را رد می‌کند و DNS ست نمی‌شود:
 
 ```powershell
 foreach($a in (Get-NetAdapter | ? Status -eq 'Up')) {
-  netsh interface ip delete dns name="$($a.Name)" all
-  netsh interface ip set dns name="$($a.Name)" source=static addr=178.22.122.100
-  netsh interface ip add dns name="$($a.Name)" addr=185.51.200.2 index=2
+  netsh interface ip set dns name="$($a.Name)" source=static addr=178.22.122.100 validate=no
+  netsh interface ip add dns name="$($a.Name)" addr=185.51.200.2 index=2 validate=no
+  netsh interface ip add dns name="$($a.Name)" addr=8.8.8.8 index=3 validate=no
 }
 ipconfig /flushdns
 ```
@@ -85,16 +87,20 @@ ipconfig /flushdns
 سرویس‌های جایگزین اگر شکن جواب نداد: الکترو `78.157.42.100` و `78.157.42.101`،
 رادار `10.202.10.10` و `10.202.10.11`، گوگل `8.8.8.8`.
 
-**۳) دانلود دستی اسکریپت:** اگر هیچ DNSی جواب نداد، فایل `deploy.ps1` را روی
+**۲) اگر حتی با DNS ست‌شده هم چیزی باز نشد** (یعنی مرکز داده خروجی پورت 53 را
+مسدود کرده)، نیازی به کار دستی نیست: نسخهٔ جدید `deploy.ps1` خودش از
+DNS-over-HTTPS استفاده می‌کند (روی پورت 443) و نتیجه را در فایل `hosts` می‌نویسد
+و آخرین لایه، IPهای ثابت گیت‌هاب/npm را در `hosts` می‌گذارد.
+
+**۳) دانلود دستی اسکریپت:** اگر هیچ‌کدام جواب نداد، فایل `deploy.ps1` را روی
 خود سیستم دانلود و با RDP به سرور کپی کنید، سپس:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1
 ```
 
-خود `deploy.ps1` هم در قدم اول DNS را بررسی و اصلاح می‌کند و برای دانلود
-Git/Node از آینه‌های جایگزین استفاده می‌کند، پس با اینترنت محدود هم شانس موفقیت
-بالاست.
+خود `deploy.ps1` هم در قدم اول همهٔ این لایه‌ها را به‌طور خودکار اجرا می‌کند
+و برای دانلود Git/Node از آینه‌های جایگزین استفاده می‌کند.
 
 ---
 

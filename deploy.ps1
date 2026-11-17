@@ -7,7 +7,12 @@
 #     powershell -ExecutionPolicy Bypass -File C:\uastemdad\deploy.ps1
 #
 #   این اسکریپت به‌صورت خودکار:
-#     ۰) اگر DNS سرور گیت‌هاب را باز نکند، DNS را با سرویس‌های شکن/الکترو/... اصلاح می‌کند
+#     ۰) دسترسی شبکه را بازسازی می‌کند:
+#        - اگر DNS تنظیم نشده/خراب است، DNS را با سرویس‌های شکن/الکترو/گوگل ست می‌کند
+#          (بدون اعتبارسنجیِ ویندوز که باعث خطای «configured DNS server is incorrect» می‌شود)
+#        - اگر هنوز باز نشد، از DNS-over-HTTPS (کلودفلر/گوگل) نام دامنه‌ها را می‌گیرد
+#          و در فایل hosts می‌نویسد
+#        - آخرین لایهٔ پشتیبان: IPهای ثابت و شناخته‌شدهٔ گیت‌هاب/npm در hosts
 #     ۱) Git و Node.js را (اگر نصب نیستند) از منبع اصلی + آینه‌های جایگزین نصب می‌کند
 #     ۲) آخرین نسخهٔ کد را در C:\uastemdad\app دریافت/به‌روزرسانی می‌کند
 #     ۳) وابستگی‌ها را نصب، دیتابیس را می‌سازد و پروژه را بیلد می‌کند
@@ -60,7 +65,13 @@ if (-not $isAdmin) {
     return
 }
 
-# ---------------------- ۰) اصلاح خودکار DNS (مخصوص سرورهای داخل ایران) ----------------------
+# اجازهٔ اتصال HTTPS به آدرس‌های IP (برای DNS-over-HTTPS)
+if (-not ("TrustAll" -as [type])) {
+    Add-Type -TypeDefinition "public static class TrustAll { public static void Set() { System.Net.ServicePointManager.ServerCertificateValidationCallback = (s,c,ch,e) => true; } }"
+}
+[TrustAll]::Set()
+
+# ---------------------- ۰) بازسازی دسترسی شبکه (DNS) ----------------------
 function Test-Resolve([string[]]$names) {
     foreach ($n in $names) {
         try { [void][System.Net.Dns]::GetHostAddresses($n) } catch { return $false }
@@ -78,26 +89,68 @@ function Set-DnsForAdapters([string[]]$servers) {
         $adapters | Set-DnsClientServerAddress -ServerAddresses $servers -ErrorAction Stop | Out-Null
         return
     } catch {}
-    # روش جایگزین با netsh (در ویندوزهای قدیمی‌تر)
+    # روش جایگزین با netsh — بدون اعتبارسنجی (validate=no) وگرنه ویندوز جلوی ست‌شدن DNS را می‌گیرد
     foreach ($a in $adapters) {
-        try { netsh interface ip delete dns name="$($a.Name)" all | Out-Null } catch {}
-        try { netsh interface ip set dns name="$($a.Name)" source=static addr=$($servers[0]) | Out-Null } catch {}
+        try { netsh interface ip set dns name="$($a.Name)" source=static addr=$($servers[0]) validate=no | Out-Null } catch {}
         $idx = 2
         for ($i = 1; $i -lt $servers.Count; $i++) {
-            try { netsh interface ip add dns name="$($a.Name)" addr=$($servers[$i]) index=$idx | Out-Null } catch {}
+            try { netsh interface ip add dns name="$($a.Name)" addr=$($servers[$i]) index=$idx validate=no | Out-Null } catch {}
             $idx++
         }
     }
 }
 
-$dnsHosts = @('github.com','raw.githubusercontent.com','api.github.com','objects.githubusercontent.com','nodejs.org','cdn.jsdelivr.net')
+function Get-DohIps([string]$name) {
+    # حل نام دامنه از طریق DNS-over-HTTPS (روی پورت 443 — حتی وقتی DNS عادی مسدود است)
+    $urls = @(
+        "https://1.1.1.1/dns-query?name=$name&type=A",
+        "https://8.8.8.8/resolve?name=$name&type=A"
+    )
+    foreach ($u in $urls) {
+        try {
+            $resp = Invoke-WebRequest -UseBasicParsing -Uri $u -Headers @{ Accept = 'application/dns-json' } -TimeoutSec 15
+            $json = $resp.Content | ConvertFrom-Json
+            $ips  = @($json.Answer | Where-Object { $_.type -eq 1 } | ForEach-Object { $_.data })
+            if ($ips.Count -gt 0) { return ,$ips }
+        } catch {}
+    }
+    return $null
+}
+
+function Add-HostsEntries([System.Collections.IDictionary]$map) {
+    $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
+    $lines = @()
+    if (Test-Path $hostsPath) {
+        $lines = @(Get-Content $hostsPath | Where-Object { $_ -notmatch '# uast-deploy' })
+    }
+    foreach ($k in $map.Keys) { $lines += ("$($map[$k]) $k # uast-deploy") }
+    [System.IO.File]::WriteAllLines($hostsPath, $lines)
+    cmd /c "ipconfig /flushdns >nul 2>&1"
+}
+
+$dnsHosts = @('github.com','api.github.com','raw.githubusercontent.com','objects.githubusercontent.com','nodejs.org','registry.npmjs.org','cdn.jsdelivr.net','binaries.prisma.sh')
+
+# IPهای ثابت پشتیبان (اگر هیچ DNS و هیچ DoHای جواب نداد)
+$staticHosts = @{
+    'github.com'                = '140.82.121.4'
+    'api.github.com'            = '140.82.121.6'
+    'raw.githubusercontent.com' = '185.199.108.133'
+    'objects.githubusercontent.com' = '185.199.108.133'
+    'registry.npmjs.org'        = '104.16.0.34'
+    'nodejs.org'                = '104.16.212.131'
+    'cdn.jsdelivr.net'          = '151.101.1.229'
+    'binaries.prisma.sh'        = '104.20.43.103'
+}
+
 if (-not (Test-Resolve $dnsHosts)) {
-    Write-Host "-> مشکل DNS: سرور نمی‌تواند آدرس‌های گیت‌هاب را باز کند — اصلاح خودکار DNS ..." -ForegroundColor Yellow
+    Write-Host "-> مشکل DNS: سرور نمی‌تواند نام دامنه‌ها را باز کند — بازسازی خودکار ..." -ForegroundColor Yellow
+
+    # لایهٔ ۱ — ست‌کردن سرورهای DNS روی کارت شبکه (بدون validate=no جواب نمی‌دهد)
     $dnsSets = @(
-        @('178.22.122.100','185.51.200.2'),
-        @('78.157.42.100','78.157.42.101'),
-        @('10.202.10.202','10.202.10.102'),
-        @('10.202.10.10','10.202.10.11'),
+        @('178.22.122.100','185.51.200.2','8.8.8.8'),
+        @('78.157.42.100','78.157.42.101','8.8.8.8'),
+        @('10.202.10.202','10.202.10.102','8.8.8.8'),
+        @('10.202.10.10','10.202.10.11','8.8.8.8'),
         @('8.8.8.8','8.8.4.4','1.1.1.1')
     )
     $dnsFixed = $false
@@ -113,8 +166,32 @@ if (-not (Test-Resolve $dnsHosts)) {
             break
         }
     }
+
+    # لایهٔ ۲ — DNS-over-HTTPS و نوشتن نتیجه در فایل hosts
     if (-not $dnsFixed) {
-        Write-Host "هشدار: هیچ‌کدام از تنظیمات DNS جواب نداد؛ ادامه می‌دهیم. اگر دانلودها خطا دادند، فیلترینگ/فایروال سازمانی را بررسی کنید." -ForegroundColor Yellow
+        Write-Host "   DNS عادی جواب نمی‌دهد — تلاش با DNS-over-HTTPS ..." -ForegroundColor DarkGray
+        $hmap = @{}
+        foreach ($d in $dnsHosts) {
+            $ips = @(Get-DohIps $d)
+            if ($ips) { $hmap[$d] = $ips[0] }
+        }
+        if ($hmap.Count -gt 0) {
+            try { Add-HostsEntries $hmap } catch {}
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    # لایهٔ ۳ — IPهای ثابت شناخته‌شده در hosts
+    if (-not (Test-Resolve $dnsHosts)) {
+        Write-Host "   تلاش با IPهای ثابت پشتیبان ..." -ForegroundColor DarkGray
+        try { Add-HostsEntries $staticHosts } catch {}
+        Start-Sleep -Seconds 2
+    }
+
+    if (Test-Resolve $dnsHosts) {
+        Write-Host "OK  دسترسی به منابع نصب (گیت‌هاب/npm) برقرار شد" -ForegroundColor Cyan
+    } else {
+        Write-Host "هشدار: هنوز همهٔ آدرس‌ها باز نشده‌اند؛ ادامه می‌دهیم — اگر دانلودها خطا دادند، فیلترینگ/فایروال سازمانی را بررسی کنید." -ForegroundColor Yellow
     }
 } else {
     Write-Host "OK  DNS سرور سالم است" -ForegroundColor Cyan
@@ -457,25 +534,25 @@ if ($okLocal) {
     Write-Host "هشدار: برنامه هنوز پاسخ نمی‌دهد — لاگ: $LogsDir\app.log | راه‌اندازی دوباره: $Root\restart-app.cmd" -ForegroundColor Yellow
 }
 
-# بررسی DNS دامنه
+# بررسی DNS دامنه (با DNS عادی یا DoH)
+$dnsDomainOk = $false
 try {
     $dns = (Resolve-DnsName $Domain -Type A -ErrorAction Stop | Where-Object { $_.IPAddress } | Select-Object -First 1).IPAddress
-    if ($dns -eq $ServerIP) {
-        Write-Host "OK  دامنهٔ $Domain درست به $ServerIP اشاره می‌کند" -ForegroundColor Cyan
-    } else {
-        Write-Host "هشدار: دامنهٔ $Domain الان به $dns اشاره می‌کند نه $ServerIP — رکورد A را در پنل دامنه اصلاح کنید. تا اصلاح DNS، گواهی HTTPS صادر نمی‌شود." -ForegroundColor Yellow
-    }
-} catch {
-    Write-Host "هشدار: هنوز رکوردی برای $Domain پیدا نشد — در پنل دامنه، رکورد A با مقدار $ServerIP بسازید." -ForegroundColor Yellow
+    if ($dns -eq $ServerIP) { $dnsDomainOk = $true }
+} catch {}
+if (-not $dnsDomainOk) {
+    $dohD = @(Get-DohIps $Domain)
+    if ($dohD -contains $ServerIP) { $dnsDomainOk = $true }
+}
+if ($dnsDomainOk) {
+    Write-Host "OK  دامنهٔ $Domain درست به $ServerIP اشاره می‌کند" -ForegroundColor Cyan
+} else {
+    Write-Host "هشدار: رکورد A دامنهٔ $Domain هنوز به $ServerIP اشاره نمی‌کند — در پنل دامنه تنظیم کنید. تا آن زمان گواهی HTTPS صادر نمی‌شود و سایت از http://${ServerIP}:$AppPort در دسترس است." -ForegroundColor Yellow
 }
 
 # بررسی HTTPS (اگر DNS تازه تنظیم شده باشد ممکن است چند دقیقه طول بکشد)
 if ($caddyOk) {
     try {
-        if (-not ("TrustAll" -as [type])) {
-            Add-Type -TypeDefinition "public static class TrustAll { public static void Set() { System.Net.ServicePointManager.ServerCertificateValidationCallback = (s,c,ch,e) => true; } }"
-        }
-        [TrustAll]::Set()
         $r = Invoke-WebRequest -UseBasicParsing -Uri "https://$Domain/" -TimeoutSec 20
         Write-Host "OK  سایت از طریق https://$Domain بالا آمده است" -ForegroundColor Green
     } catch {
