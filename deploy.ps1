@@ -385,6 +385,11 @@ if ($LASTEXITCODE -ne 0) { Write-Host "خطا در داده‌های اولیه.
 
 # ---------------------- ۹) بیلد نسخهٔ production ----------------------
 Write-Host "-> بیلد نسخهٔ production (چند دقیقه — پنجره را نبندید) ..." -ForegroundColor Yellow
+# توقف برنامهٔ در حال اجرا — وگرنه فایل‌های .next قفل می‌شوند و بیلد با خطای EBUSY شکست می‌خورد
+Write-Host "-> توقف موقت برنامه برای آزادشدن فایل‌های بیلد ..." -ForegroundColor Yellow
+cmd /c "schtasks /End /TN $TaskApp >nul 2>&1"
+cmd /c "taskkill /F /IM node.exe >nul 2>&1"
+Start-Sleep -Seconds 3
 $env:NODE_OPTIONS = "--max-old-space-size=4096"
 npm run build
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$App\.next\standalone\server.js")) {
