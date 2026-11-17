@@ -98,12 +98,6 @@ export default function AdminLoginPage() {
               ورود به پنل مدیریت
             </button>
 
-            <div className="rounded-xl bg-secondary/70 border border-dashed border-border px-4 py-3 text-center text-[11px] text-muted-foreground leading-6">
-              ورود پیش‌فرض: <b dir="ltr">admin / admin123</b>
-              <br />
-              پس از ورود، رمز عبور را از بخش «کاربران» تغییر دهید.
-            </div>
-
             <Link
               href="/"
               className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
