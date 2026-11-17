@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
   description:
     "سامانه رسمی مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره) — اخبار و اطلاعیه‌ها، رشته‌های تحصیلی، سامانه‌های آموزشی و ارتباط با مرکز",
-  icons: { icon: "/images/logo.png" },
+  icons: { icon: "/images/emblem.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export default function RootLayout({

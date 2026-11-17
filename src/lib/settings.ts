@@ -5,7 +5,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   siteName: "مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره)",
   siteShort: "مرکز علمی–کاربردی کمیته امداد",
   tagline: "تربیت نیروی انسانی ماهر و توانمند برای خدمت‌رسانی اثربخش",
-  logo: "/images/logo.png",
+  logo: "/images/emblem.png",
   address: "تهران – سی متری نیرو هوایی – کوچه ۷/۲۹ – پلاک ۲",
   phones: "02177167008, 02177162711, 02177167969",
   email: "info@uastemdad.ir",

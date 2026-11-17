@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import path from "path";
 import { requireSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+/** پوشهٔ ذخیرهٔ فایل‌ها — در production با UPLOAD_DIR خارج از .next تنظیم می‌شود */
+export function uploadsDir(): string {
+  return process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
+}
 
 const ALLOWED = {
   "image/jpeg": "jpg",
@@ -40,8 +46,9 @@ export async function POST(req: NextRequest) {
     const name = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
     const buf = Buffer.from(await file.arrayBuffer());
     const { writeFile, mkdir } = await import("fs/promises");
-    await mkdir("public/uploads", { recursive: true });
-    await writeFile(`public/uploads/${name}`, buf);
+    const dir = uploadsDir();
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, name), buf);
     return NextResponse.json({ url: `/uploads/${name}` });
   } catch (e) {
     console.error("upload error", e);

@@ -142,7 +142,7 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
         <div className="mx-auto max-w-7xl px-4 flex items-center justify-between gap-3 h-[72px]">
           {/* لوگو و نام */}
           <Link href="/" className="flex items-center gap-3 min-w-0">
-            <Logo />
+            <Logo src={settings.logo} className="h-12 md:h-14 w-12 md:w-14 shrink-0" />
             <div className="min-w-0">
               <div className="font-extrabold text-[15px] md:text-base leading-6 text-foreground truncate">
                 {settings.siteShort}
@@ -235,7 +235,7 @@ export function Header({ mainMenu, quickMenu, settings }: HeaderProps) {
               <SheetContent side="right" className="w-80 overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2 text-right">
-                    <Logo className="h-8 w-8" />
+                    <Logo src={settings.logo} className="h-8 w-8" />
                     <span className="text-sm">{settings.siteShort}</span>
                   </SheetTitle>
                 </SheetHeader>
