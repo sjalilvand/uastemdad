@@ -14,6 +14,7 @@ import {
   BadgeCheck,
   Megaphone,
   Newspaper,
+  Images,
 } from "lucide-react";
 
 export async function PostDetail({ slug }: { slug: string }) {
@@ -51,6 +52,17 @@ export async function PostDetail({ slug }: { slug: string }) {
   ]);
 
   const related = await localizePosts(relatedRaw, locale);
+
+  // گالری تصاویر خبر (آرایهٔ JSON در فیلد images)
+  let gallery: string[] = [];
+  try {
+    const parsed = JSON.parse(post.images || "[]");
+    if (Array.isArray(parsed)) gallery = parsed.filter((x) => typeof x === "string" && x);
+  } catch {
+    gallery = [];
+  }
+  // حذف تصویر تکراری با شاخص
+  if (post.coverImage && gallery[0] === post.coverImage) gallery = gallery.slice(1);
 
   return (
     <>
@@ -121,6 +133,39 @@ export async function PostDetail({ slug }: { slug: string }) {
               className="rich-content mt-8"
               dangerouslySetInnerHTML={{ __html: locContent }}
             />
+
+            {/* گالری تصاویر خبر (آپلودشده با بات بله یا پنل) */}
+            {gallery.length > 0 && (
+              <div className="mt-10">
+                <h3 className="flex items-center gap-2 text-sm font-extrabold text-foreground border-t border-border/60 pt-6">
+                  <Images className="h-4 w-4 text-gold" />
+                  گالری تصاویر
+                  <span className="text-xs font-bold text-muted-foreground">({gallery.length.toLocaleString("fa-IR")} عکس)</span>
+                </h3>
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {gallery.map((src, i) => (
+                    <a
+                      key={i}
+                      href={src}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group relative overflow-hidden rounded-2xl border border-border bg-secondary aspect-[4/3]"
+                      title="مشاهده در اندازهٔ کامل"
+                    >
+                      <img
+                        src={src}
+                        alt={`${locTitle} — تصویر ${i + 1}`}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-bold text-white tabular-fa">
+                        {(i + 1).toLocaleString("fa-IR")}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

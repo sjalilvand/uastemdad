@@ -74,6 +74,13 @@ export const RESOURCES: ResourceDef[] = [
         help: "در صورت خالی بودن به‌صورت خودکار ساخته می‌شود",
       },
       { name: "coverImage", label: "تصویر شاخص", type: "image" },
+      {
+        name: "images",
+        label: "گالری تصاویر (JSON)",
+        type: "textarea",
+        span: 2,
+        help: "آرایهٔ JSON از آدرس عکس‌ها — معمولاً هنگام ثبت خبر با بات بله پر می‌شود؛ مانند [\"/uploads/a.jpg\",\"/uploads/b.jpg\"]",
+      },
       { name: "excerpt", label: "خلاصه", type: "textarea", span: 2 },
       { name: "content", label: "متن کامل", type: "richtext", span: 2 },
       {

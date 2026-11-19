@@ -352,9 +352,13 @@ Write-Host "OK  وابستگی‌ها نصب شد" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path "$Root\db","$Root\data\uploads","$LogsDir","$ToolsDir" | Out-Null
 $dbUrl = "file:C:/uastemdad/db/custom.db"
 $authSecret = $null
+$baleToken = "1405299990:y0Si7cgi96y3oQSiTg6fvsfBjjYE9aFp6uA"
+$siteUrl = "https://uastemdad.ir"
 if (Test-Path "$App\.env") {
     foreach ($line in Get-Content "$App\.env") {
         if ($line -match '^AUTH_SECRET=(.+)$') { $authSecret = $Matches[1] }
+        if ($line -match '^BALE_BOT_TOKEN=(.+)$') { $baleToken = $Matches[1] }
+        if ($line -match '^SITE_URL=(.+)$') { $siteUrl = $Matches[1] }
     }
 }
 if (-not $authSecret) { $authSecret = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N") }
@@ -362,6 +366,9 @@ $envContent = @"
 DATABASE_URL=$dbUrl
 AUTH_SECRET=$authSecret
 UPLOAD_DIR=C:/uastemdad/data/uploads
+BALE_BOT_TOKEN=$baleToken
+BALE_BOT_ENABLED=true
+SITE_URL=$siteUrl
 NEXT_TELEMETRY_DISABLED=1
 NODE_ENV=production
 "@
@@ -370,6 +377,9 @@ NODE_ENV=production
 $env:DATABASE_URL = $dbUrl
 $env:AUTH_SECRET  = $authSecret
 $env:UPLOAD_DIR   = "C:/uastemdad/data/uploads"
+$env:BALE_BOT_TOKEN = $baleToken
+$env:BALE_BOT_ENABLED = "true"
+$env:SITE_URL = $siteUrl
 $env:NEXT_TELEMETRY_DISABLED = "1"
 Write-Host "OK  فایل .env و پوشه‌های داده آماده شد" -ForegroundColor Cyan
 
@@ -465,6 +475,9 @@ set HOSTNAME=0.0.0.0
 set DATABASE_URL=$dbUrl
 set AUTH_SECRET=$authSecret
 set UPLOAD_DIR=C:/uastemdad/data/uploads
+set BALE_BOT_TOKEN=$baleToken
+set BALE_BOT_ENABLED=true
+set SITE_URL=$siteUrl
 set NEXT_TELEMETRY_DISABLED=1
 :loop
 if exist "$LogsDir\app.log" for %%A in ("$LogsDir\app.log") do if %%~zA GTR 10485760 move /y "$LogsDir\app.log" "$LogsDir\app.old.log" >nul

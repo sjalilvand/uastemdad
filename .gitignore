@@ -62,3 +62,7 @@ server.log
 /.next-3003
 upload/
 db/
+
+# runtime uploads & internal tool output
+/public/uploads/
+/tool-results/

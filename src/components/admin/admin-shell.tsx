@@ -17,6 +17,7 @@ import {
   Newspaper,
   Menu as MenuIcon,
   ExternalLink,
+  Bot as BotIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toFa } from "@/lib/jalali";
@@ -67,6 +68,7 @@ export function AdminShell({
       badge: 0,
     },
     { href: "/admin/users", label: "کاربران", icon: UsersRound, badge: 0 },
+    { href: "/admin/bot", label: "بات بله", icon: BotIcon as React.ComponentType<{ className?: string }>, badge: 0 },
     { href: "/admin/settings", label: "تنظیمات سامانه", icon: Settings, badge: 0 },
   ];
 

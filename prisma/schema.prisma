@@ -39,6 +39,9 @@ model Post {
   contentEn   String    @default("")
   contentAr   String    @default("")
   coverImage  String?
+  /** گالری تصاویر خبر — آرایهٔ JSON از آدرس‌ها (با بات بله یا پنل پر می‌شود) */
+  images      String    @default("[]")
+  source      String    @default("PANEL") // PANEL | BALE
   type        String    @default("NEWS")
   featured    Boolean   @default(false)
   published   Boolean   @default(true)
@@ -271,6 +274,36 @@ model Event {
   createdAt   DateTime @default(now())
 
   @@index([date])
+}
+
+/** ادمین‌های متصل به بات بله (پس از ورود با نام کاربری و گذرواژهٔ پنل) */
+model BotAdmin {
+  id        String   @id @default(cuid())
+  chatId    String   @unique
+  userId    String   @default("")
+  name      String   @default("")
+  username  String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/** وضعیت مکالمهٔ بات برای هر چت (ماشین حالت) */
+model BotSession {
+  chatId    String   @id
+  state     String   @default("IDLE")
+  data      String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+/** گزارش فعالیت بات */
+model BotLog {
+  id        String   @id @default(cuid())
+  chatId    String   @default("")
+  action    String
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 /** کش ترجمه آنلاین صفحات (fa → en/ar) */
