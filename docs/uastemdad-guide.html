@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>راهنمای کامل سامانهٔ اطلاع‌رسانی مرکز علمی–کاربردی کمیته امداد</title>
+<style>
+  :root{
+    --primary:#0B5D51; --primary-dark:#08463D; --primary-light:#E8F4F1;
+    --accent:#0E8A72; --text:#1F2933; --muted:#5A6B75;
+    --ok:#1B7F4D; --ok-bg:#EAF6F0; --warn:#9A6700; --warn-bg:#FFF6DC;
+    --err:#B3261E; --err-bg:#FBEDEC; --code-bg:#F4F7F6; --border:#DDE5E3;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:#F2F6F5; color:var(--text);
+    font-family:"Vazirmatn","Segoe UI",Tahoma,"Iranian Sans",Arial,sans-serif;
+    font-size:15.5px; line-height:1.95;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:24px 18px 80px}
+  header.hero{
+    background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+    color:#fff; border-radius:18px; padding:38px 34px; margin-bottom:26px;
+    box-shadow:0 10px 30px rgba(11,93,81,.25);
+  }
+  header.hero h1{margin:0 0 10px; font-size:26px; line-height:1.6}
+  header.hero p{margin:0; opacity:.92; font-size:15px}
+  .hero-badges{margin-top:16px; display:flex; flex-wrap:wrap; gap:8px}
+  .hero-badges span{
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28);
+    padding:4px 12px; border-radius:999px; font-size:12.5px;
+  }
+  nav.toc{
+    background:#fff; border:1px solid var(--border); border-radius:14px;
+    padding:20px 26px; margin-bottom:26px;
+  }
+  nav.toc h2{margin:0 0 10px; font-size:17px; color:var(--primary)}
+  nav.toc ol{margin:0; padding-right:20px; columns:2; column-gap:36px}
+  nav.toc li{margin:4px 0; break-inside:avoid}
+  nav.toc a{color:var(--accent); text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+  section.card{
+    background:#fff; border:1px solid var(--border); border-radius:14px;
+    padding:26px 30px; margin-bottom:24px;
+  }
+  h2.sec{
+    display:flex; align-items:center; gap:10px;
+    font-size:20px; color:var(--primary); margin:0 0 6px;
+    border-bottom:2px solid var(--primary-light); padding-bottom:12px;
+  }
+  h2.sec .num{
+    background:var(--primary); color:#fff; width:34px; height:34px; border-radius:10px;
+    display:inline-flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;
+  }
+  h3{color:var(--primary-dark); font-size:16.5px; margin:26px 0 8px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0; padding-right:24px}
+  li{margin:5px 0}
+  code{
+    background:var(--code-bg); border:1px solid var(--border); border-radius:6px;
+    padding:1px 7px; font-family:Consolas,"Courier New",monospace; font-size:13px;
+    direction:ltr; display:inline-block; unicode-bidi:embed;
+  }
+  pre{
+    background:var(--code-bg); border:1px solid var(--border); border-right:4px solid var(--accent);
+    border-radius:10px; padding:14px 18px; overflow-x:auto; direction:ltr; text-align:left;
+    cursor:pointer; position:relative;
+  }
+  pre code{background:none; border:none; padding:0; font-size:13.5px; line-height:1.85; white-space:pre}
+  pre::after{
+    content:"کلیک = کپی"; position:absolute; top:8px; left:12px; font-size:11px;
+    color:var(--muted); direction:rtl; opacity:.75;
+  }
+  pre.copied::after{content:"کپی شد ✓"; color:var(--ok)}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px}
+  th{background:var(--primary-light); color:var(--primary-dark); text-align:right}
+  th,td{border:1px solid var(--border); padding:9px 12px; vertical-align:top}
+  tbody tr:nth-child(even){background:#FAFCFB}
+  .tag{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; white-space:nowrap}
+  .tag.ok{background:var(--ok-bg); color:var(--ok)}
+  .tag.warn{background:var(--warn-bg); color:var(--warn)}
+  .tag.err{background:var(--err-bg); color:var(--err)}
+  .tag.info{background:var(--primary-light); color:var(--primary)}
+  .callout{border-radius:10px; padding:14px 18px; margin:14px 0; font-size:14.5px}
+  .callout b{display:inline}
+  .callout.tip{background:var(--ok-bg); border-right:4px solid var(--ok)}
+  .callout.warn{background:var(--warn-bg); border-right:4px solid var(--warn)}
+  .callout.err{background:var(--err-bg); border-right:4px solid var(--err)}
+  .callout.info{background:var(--primary-light); border-right:4px solid var(--primary)}
+  .cmd-big{
+    background:var(--primary-dark); color:#EAF6F2; border-radius:12px; padding:16px 20px;
+    direction:ltr; text-align:left; font-family:Consolas,monospace; font-size:14px;
+    margin:10px 0; cursor:pointer; position:relative; overflow-x:auto; white-space:pre;
+  }
+  .cmd-big::after{content:"کلیک = کپی"; position:absolute; top:6px; left:12px; font-size:11px; color:#9FC7BE; direction:rtl}
+  .cmd-big.copied::after{content:"کپی شد ✓"; color:#7FE0B6}
+  .cmd-block{margin:18px 0 26px}
+  .cmd-block .lbl{font-weight:700; color:var(--primary-dark); margin-bottom:6px; font-size:15px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media(max-width:720px){ .grid2{grid-template-columns:1fr} nav.toc ol{columns:1} }
+  .flow{list-style:none; padding-right:0; counter-reset:step}
+  .flow li{
+    counter-increment:step; background:#FAFCFB; border:1px solid var(--border);
+    border-radius:10px; padding:12px 16px 12px 16px; margin:10px 0; position:relative; padding-right:56px;
+  }
+  .flow li::before{
+    content:counter(step); position:absolute; right:12px; top:12px;
+    background:var(--accent); color:#fff; width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  footer{ text-align:center; color:var(--muted); font-size:13px; margin-top:34px }
+  details{margin:10px 0; background:#FAFCFB; border:1px solid var(--border); border-radius:10px; padding:10px 16px}
+  summary{cursor:pointer; font-weight:700; color:var(--primary-dark)}
+  @media print{
+    body{background:#fff} .wrap{max-width:100%; padding:0}
+    section.card,nav.toc,header.hero{box-shadow:none; break-inside:avoid-page}
+    pre,.cmd-big{white-space:pre-wrap}
+    pre::after,.cmd-big::after{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>🎓 راهنمای کامل سامانهٔ اطلاع‌رسانی<br>مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره)</h1>
+  <p>سایت رسمی + پنل مدیریت + بات بله برای انتشار خبر — شامل دستورهای اجرا، به‌روزرسانی، راه‌اندازی مجدد و رفع اشکال‌های احتمالی</p>
+  <div class="hero-badges">
+    <span>🌐 https://uastemdad.ir</span>
+    <span>🖥️ سرور: 94.182.131.94 (Windows Server)</span>
+    <span>💬 بات بله: @Universityemdad_bot</span>
+    <span>📅 نسخهٔ راهنما: آذر ۱۴۰۵</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>📑 فهرست مطالب</h2>
+  <ol>
+    <li><a href="#s1">معرفی سامانه و امکانات</a></li>
+    <li><a href="#s2">معماری فنی و ساختار پوشه‌ها</a></li>
+    <li><a href="#s3">دستورهای اصلی PowerShell (مهم‌ترین بخش)</a></li>
+    <li><a href="#s4">بات بله — راهنمای کامل استفاده</a></li>
+    <li><a href="#s5">رفع اشکال — خطاها و مشکلات احتمالی</a></li>
+    <li><a href="#s6">لاگ‌ها و پایش سامانه</a></li>
+    <li><a href="#s7">پشتیبان‌گیری (بکاپ) و بازگردانی</a></li>
+    <li><a href="#s8">نکات امنیتی</a></li>
+    <li><a href="#s9">پرسش‌های متداول</a></li>
+    <li><a href="#s10">کارت مرجع سریع دستورها</a></li>
+  </ol>
+</nav>
+
+<!-- ================================================================ -->
+<section class="card" id="s1">
+  <h2 class="sec"><span class="num">۱</span> معرفی سامانه و امکانات</h2>
+  <p>این سامانه، جایگزین کامل سایت قدیمی وردپرس است و با فناوری‌های مدرن (Next.js) بازنویسی شده تا سریع‌تر، امن‌تر و قابل‌نگهداری‌تر باشد. کل سامانه روی سرور ویندوز شما اجرا می‌شود و به هیچ سرویس خارجی گران‌قیمت وابسته نیست.</p>
+  <h3>اجزای سامانه</h3>
+  <table>
+    <thead><tr><th style="width:26%">جزء</th><th>توضیح</th><th style="width:30%">آدرس</th></tr></thead>
+    <tbody>
+      <tr><td>🌐 سایت عمومی</td><td>اخبار، اطلاعیه‌ها، برنامه‌های آموزشی، اساتید، گالری، فرم عضویت دانشجویان، آمار بازدید و…</td><td><code>https://uastemdad.ir</code></td></tr>
+      <tr><td>🔐 پنل مدیریت</td><td>مدیریت اخبار/اطلاعیه‌ها (با ویرایشگر متن و آپلود عکس)، منو، اسلایدرها، اعضا، پیام‌ها، آمار و تنظیمات</td><td><code>https://uastemdad.ir/admin</code></td></tr>
+      <tr><td>💬 بات بله</td><td>انتشار خبر و اطلاعیه <b>با عکس</b> به‌صورت گرافیکی و گام‌به‌گام، مستقیماً از پیام‌رسان بله — بدون باز کردن پنل</td><td><code>ble.ir/Universityemdad_bot</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout info">
+    <b>نکتهٔ مهم:</b> بات بله بخشی از خودِ برنامهٔ سایت است (نه یک سرویس جدا). یعنی هر وقت برنامهٔ سایت بالا باشد، بات هم فعال است و خبری که در بله منتشر می‌کنید، چند ثانیه بعد در صفحهٔ اخبار سایت نمایش داده می‌شود.
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s2">
+  <h2 class="sec"><span class="num">۲</span> معماری فنی و ساختار پوشه‌ها</h2>
+  <h3>فناوری‌ها</h3>
+  <ul>
+    <li><b>Next.js 16 + TypeScript + Tailwind</b> — فریم‌ورک ساخت سایت (سرعت بالا و پایداری)</li>
+    <li><b>Prisma + SQLite</b> — دیتابیس ساده و سریع در قالب یک فایل (بدون نیاز به نصب SQL Server)</li>
+    <li><b>Caddy</b> — وب‌سروری که HTTPS و گواهی امنیتی رایگان Let's Encrypt را خودکار تأمین می‌کند</li>
+    <li><b>وظایف زمان‌بندی ویندوز (schtasks)</b> — به‌جای سرویس‌های پیچیده؛ پس از هر ری‌استارت سرور، برنامه و Caddy خودکار بالا می‌آیند</li>
+    <li><b>Bale Bot API (long-polling)</b> — ارتباط با پیام‌رسان بله از داخل خود برنامه</li>
+  </ul>
+  <h3>ساختار پوشه‌ها روی سرور</h3>
+  <table>
+    <thead><tr><th style="width:34%">مسیر</th><th>محتویات</th></tr></thead>
+    <tbody>
+      <tr><td><code>C:\uastemdad\app</code></td><td>کد برنامه (مخزن گیت‌هاب) — اسکریپت‌های <code>deploy.ps1</code> ، <code>update-app.ps1</code> ، <code>start-app.ps1</code> ، <code>fix-https.ps1</code> هم اینجاست</td></tr>
+      <tr><td><code>C:\uastemdad\app\.env</code></td><td>تنظیمات حساس: توکن بات بله (<code>BALE_BOT_TOKEN</code>)، کلید امنیتی، مسیر دیتابیس و…</td></tr>
+      <tr><td><code>C:\uastemdad\db\custom.db</code></td><td>دیتابیس (همهٔ اخبار، اعضا، تنظیمات) — <span class="tag warn">مهم‌ترین فایل برای بکاپ</span></td></tr>
+      <tr><td><code>C:\uastemdad\data\uploads</code></td><td>عکس‌های آپلودشده (از پنل یا بات بله) با آدرس <code>/uploads/نام‌فایل</code></td></tr>
+      <tr><td><code>C:\uastemdad\logs\app.log</code></td><td>لاگ برنامه و بات بله</td></tr>
+      <tr><td><code>C:\uastemdad\logs\caddy.log</code></td><td>لاگ HTTPS / Caddy</td></tr>
+      <tr><td><code>C:\uastemdad\tools\caddy.exe</code></td><td>وب‌سرور HTTPS</td></tr>
+      <tr><td><code>C:\uastemdad\run-app.cmd</code> / <code>run-caddy.cmd</code></td><td>فایل‌های اجرای خودکار (توسط وظایف زمان‌بندی صدا زده می‌شوند؛ با حلقهٔ خود-باز-راه‌اندازی)</td></tr>
+      <tr><td><code>C:\uastemdad\restart-app.cmd</code> / <code>restart-caddy.cmd</code></td><td>ری‌استارت سریع برنامه / HTTPS</td></tr>
+    </tbody>
+  </table>
+  <h3>وظایف زمان‌بندی ویندوز</h3>
+  <table>
+    <thead><tr><th style="width:30%">نام وظیفه</th><th>کار</th><th style="width:26%">خودکار پس از ری‌استارت؟</th></tr></thead>
+    <tbody>
+      <tr><td><code>uastemdad-app</code></td><td>اجرای برنامهٔ سایت روی پورت 3003 + بات بله</td><td><span class="tag ok">بله (ONSTART)</span></td></tr>
+      <tr><td><code>uastemdad-proxy</code></td><td>اجرای Caddy برای HTTPS روی پورت‌های 80 و 443</td><td><span class="tag ok">بله (ONSTART)</span></td></tr>
+    </tbody>
+  </table>
+  <p class="callout info">مسیر درخواست کاربر: مرورگر ← <b>Caddy (پورت 443، گواهی HTTPS)</b> ← <b>برنامهٔ Next.js (پورت 3003)</b> ← دیتابیس SQLite. بات بله هم از داخل همان برنامهٔ Next.js به سرورهای <code>tapi.bale.ai</code> وصل می‌شود.</p>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s3">
+  <h2 class="sec"><span class="num">۳</span> دستورهای اصلی PowerShell — مهم‌ترین بخش</h2>
+  <p>همهٔ دستورهای زیر را در <b>PowerShell با دسترسی Administrator</b> اجرا کنید (روی آیکون PowerShell راست‌کلیک ← <b>Run as Administrator</b>).</p>
+
+  <div class="cmd-block">
+    <div class="lbl">⭐ ۱) نصب کامل برای بار اول — فقط یک بار (اگر سرور تازه است یا همه‌چیز از دست رفته)</div>
+    <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\deploy.ps1</div>
+    <p>این اسکریپت خودکار: DNS را بازسازی می‌کند، Git و Node.js را نصب می‌کند، کد را می‌گیرد، دیتابیس را می‌سازد، بیلد می‌کند، فایروال و HTTPS (Caddy) را تنظیم و وظایف خودکار را می‌سازد. اجرای دوبارهٔ آن بی‌خطر است و داده‌ها حفظ می‌شوند.</p>
+  </div>
+
+  <div class="cmd-block">
+    <div class="lbl">⭐ ۲) اجرای برنامه هر وقت لازم شد — راه‌اندازی سامانه</div>
+    <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1</div>
+    <p>برنامهٔ سایت و بات بله را بالا می‌آورد، اگر Caddy نصب باشد HTTPS را هم روشن می‌کند و در پایان وضعیت سلامت را نشان می‌دهد. اگر قبلاً اجرا بوده، دست نمی‌زند.</p>
+  </div>
+
+  <div class="cmd-block">
+    <div class="lbl">⭐ ۳) اجرای کدهای جدید — به‌روزرسانی سامانه با آخرین نسخه</div>
+    <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\update-app.ps1</div>
+    <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، وابستگی‌ها نصب، دیتابیس همگام و برنامه بیلد و راه‌اندازی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b></p>
+  </div>
+
+  <h3>حالت‌های دیگر <code>start-app.ps1</code></h3>
+  <table>
+    <thead><tr><th style="width:52%">دستور</th><th>کار</th></tr></thead>
+    <tbody>
+      <tr><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Status</code></td><td>فقط نمایش وضعیت (وظایف، پورت‌ها، پاسخ‌دهی سایت، ۵ خط آخر لاگ) — بدون تغییر</td></tr>
+      <tr><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Restart</code></td><td>توقف کامل برنامه و HTTPS و راه‌اندازی دوباره (درمان «حالت‌های عجیب»)</td></tr>
+      <tr><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Stop</code></td><td>توقف همهٔ اجزا (برای بکاپ‌گیری یا تعمیر)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>دستورهای کمکی سریع</h3>
+  <ul>
+    <li>ری‌استارت فقط برنامه (سریع‌ترین راه): <code>C:\uastemdad\restart-app.cmd</code> را دوبار‌کلیک کنید یا در PowerShell بنویسید <code>&amp; C:\uastemdad\restart-app.cmd</code></li>
+    <li>ری‌استارت فقط HTTPS: <code>&amp; C:\uastemdad\restart-caddy.cmd</code></li>
+    <li>تعمیر کامل HTTPS/Caddy: <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\fix-https.ps1</code></li>
+    <li>وضعیت وظیفهٔ برنامه: <code>schtasks /Query /TN uastemdad-app /V /FO LIST</code></li>
+  </ul>
+
+  <div class="callout tip"><b>خلاصهٔ کاربردی:</b> روزمره فقط دو دستور را به خاطر بسپارید — <b>«راه‌اندازی»: start-app.ps1</b> و <b>«به‌روزرسانی»: update-app.ps1</b>. هر مشکل پیچیده‌ای هم پیش آمد، بخش ۵ (رفع اشکال) را ببینید.</div>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s4">
+  <h2 class="sec"><span class="num">۴</span> بات بله — راهنمای کامل استفاده</h2>
+  <table>
+    <thead><tr><th style="width:30%">مشخصه</th><th>مقدار</th></tr></thead>
+    <tbody>
+      <tr><td>نام کاربری بات</td><td><code>@Universityemdad_bot</code></td></tr>
+      <tr><td>لینک ورود مستقیم</td><td><code>ble.ir/Universityemdad_bot</code></td></tr>
+      <tr><td>محل ذخیرهٔ توکن</td><td><code>C:\uastemdad\app\.env</code> ← سطر <code>BALE_BOT_TOKEN=...</code> (برای تغییر توکن، همین سطر را عوض و برنامه را ری‌استارت کنید)</td></tr>
+      <tr><td>نوع ارتباط</td><td>Long-polling از داخل برنامهٔ سایت — نیازی به webhook و آدرس عمومی ندارد</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۴-۱) اتصال اولیهٔ مدیر (فقط یک بار)</h3>
+  <ol class="flow">
+    <li>در بله، بات را باز کنید: <b>ble.ir/Universityemdad_bot</b> و دکمهٔ Start را بزنید.</li>
+    <li>بات می‌پرسد «نام کاربری» حساب مدیریت را بفرستید (همان نام کاربری پنل ادمین سایت، پیش‌فرض: <code>admin</code>).</li>
+    <li>سپس «گذرواژه» را بفرستید. بات پیام گذرواژه را خودکار حذف می‌کند تا در گفتگو باقی نماند (پیشنهاد می‌شود شما هم دستی حذف کنید).</li>
+    <li>پس از پیام «✅ خوش آمدید»، حساب شما به بات متصل است و منوی اصلی نمایش داده می‌شود.</li>
+  </ol>
+  <div class="callout warn"><b>امنیت:</b> بعد از ۵ تلاش ناموفق، فرایند ورود ریست می‌شود. هیچ‌کس بدون نام کاربری و گذرواژهٔ پنل نمی‌تواند از بات استفاده کند؛ سایر کاربران پیام «ابتدا وارد شوید» می‌گیرند.</div>
+
+  <h3>۴-۲) انتشار خبر یا اطلاعیه با عکس (ویزارد گرافیکی ۵ گامی)</h3>
+  <p>در منوی اصلی یکی از دکمه‌های <span class="tag info">📰 افزودن خبر جدید</span> یا <span class="tag info">📢 افزودن اطلاعیه</span> را بزنید:</p>
+  <table>
+    <thead><tr><th style="width:16%">گام</th><th style="width:22%">چه چیزی می‌خواهد</th><th>نکته‌ها</th></tr></thead>
+    <tbody>
+      <tr><td><b>۱ — عنوان</b></td><td>عنوان خبر (حداقل ۳ حرف)</td><td>مثال: «بازدید سرپرست دانشگاه جامع علمی‌کاربردی واحد تهران شرق از روند برگزاری مصاحبه متقاضیان تدریس»</td></tr>
+      <tr><td><b>۲ — خلاصه</b></td><td>۱ تا ۲ جمله</td><td>در فهرست اخبار سایت نمایش داده می‌شود؛ با دکمهٔ «⏭ رد کردن» می‌توانید ردش کنید (خودکار از ابتدای متن ساخته می‌شود).</td></tr>
+      <tr><td><b>۳ — متن کامل</b></td><td>متن خبر</td><td>می‌توانید چند پیام پشت‌سرهم بفرستید — همه پشت‌هم ذخیره و هر پاراگراف جدا در سایت نمایش داده می‌شود. با دکمهٔ «✅ متن همین است — ادامه» یا ارسال کلمهٔ «تمام» به گام بعد بروید.</td></tr>
+      <tr><td><b>۴ — عکس‌ها</b></td><td>عکس‌های مرتبط خبر</td><td>عکس‌ها را مستقیم در گفتگو بفرستید (کمیتهٔ امداد/مرکز/مصاحبه و…). حداکثر <b>۱۰ عکس</b>، هر عکس حداکثر <b>۱۰ مگابایت</b>. <b>اولین عکس = تصویر شاخص</b> خبر در سایت. با دکمهٔ «✅ اتمام عکس‌ها — ادامه» تمام کنید.</td></tr>
+      <tr><td><b>۵ — دسته‌بندی</b></td><td>انتخاب دسته از دکمه‌ها</td><td>از بین دسته‌های سایت یا «🚫 بدون دسته‌بندی».</td></tr>
+    </tbody>
+  </table>
+  <p>سپس <b>پیش‌نمایش</b> خبر (متن + آلبوم عکس‌ها) نمایش داده می‌شود و چهار انتخاب دارید:</p>
+  <ul>
+    <li><span class="tag ok">✅ بله — انتشار در سایت</span> → خبر فوراً در سایت منتشر می‌شود و دکمهٔ «مشاهده در سایت» می‌آید.</li>
+    <li><span class="tag info">💾 ذخیره به‌عنوان پیش‌نویس</span> → در پنل مدیریت (بخش اخبار) ذخیره می‌شود تا بعداً از پنل منتشر کنید.</li>
+    <li><span class="tag warn">🔄 نوشتن از نو</span> و <span class="tag err">❌ انصراف</span> نیز موجود است.</li>
+  </ul>
+
+  <h3>۴-۳) منوی اصلی و امکانات دیگر بات</h3>
+  <table>
+    <thead><tr><th style="width:34%">دکمه / دستور</th><th>کار</th></tr></thead>
+    <tbody>
+      <tr><td>🗂 فهرست اخبار و اطلاعیه‌ها</td><td>فهرست صفحه‌به‌صفحه (۸ تایی) با دکمهٔ 🗑 برای حذف و کلیک روی عنوان برای مشاهده در سایت</td></tr>
+      <tr><td>🤖 وضعیت بات (یا <code>/status</code>)</td><td>آمار: تعداد اخبار، اطلاعیه‌ها، پیش‌نویس‌ها، مدیران متصل و آخرین ثبت از بله</td></tr>
+      <tr><td>📖 راهنما (یا <code>/help</code>)</td><td>خلاصهٔ روش استفاده داخل خود بات</td></tr>
+      <tr><td>🌐 مشاهده سایت</td><td>لینک مستقیم به صفحهٔ اول سایت</td></tr>
+      <tr><td>🔗 قطع اتصال</td><td>خروج این گفتگو از حالت مدیر (برای وقتی گوشی عوض می‌کنید)</td></tr>
+      <tr><td><code>/menu</code> • <code>/cancel</code> • <code>/help</code> • <code>/status</code></td><td>دستورهای میان‌بر متنی در هر لحظه</td></tr>
+    </tbody>
+  </table>
+
+  <h3>۴-۴) اگر بات پاسخ نمی‌دهد</h3>
+  <ol class="flow">
+    <li>با دستور <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Status</code> مطمئن شوید برنامهٔ سایت سالم است — بات هم همان برنامه است.</li>
+    <li>در لاگ برنامه دنبال خط‌های <code>[bale-bot]</code> بگردید: <code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "bale-bot" | Select-Object -Last 20</code></li>
+    <li>اتصال سرور به بله را مستقیم تست کنید (کد روبه‌رو را یک‌جا در PowerShell کپی کنید):</li>
+  </ol>
+  <pre><code>$token = (Get-Content C:\uastemdad\app\.env | Where-Object { $_ -like 'BALE_BOT_TOKEN=*' }) -replace 'BALE_BOT_TOKEN=',''
+Invoke-RestMethod "https://tapi.bale.ai/bot$token/getMe"</code></pre>
+  <p>اگر پاسخ <code>ok=True</code> بود، اتصال بله برقرار است. اگر خطای شبکه داد، اینترنت/DNS سرور را بررسی کنید؛ اگر خطای 401 داد، توکن اشتباه است و باید سطر <code>BALE_BOT_TOKEN</code> در <code>.env</code> اصلاح شود.</p>
+  <ol class="flow" start="4">
+    <li>در پایان: <code>start-app.ps1 -Restart</code> — بات دوباره از نو polling را شروع می‌کند.</li>
+  </ol>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s5">
+  <h2 class="sec"><span class="num">۵</span> رفع اشکال — خطاها و مشکلات احتمالی</h2>
+
+  <h3>۵-۱) جدول خطاهای رایج</h3>
+  <table>
+    <thead><tr><th style="width:26%">نشانه / خطا</th><th style="width:30%">علت</th><th>راه‌حل</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tag err">EBUSY</span> خطای بیلد: «资源 busy / resource in use / EBUSY»</td>
+        <td>فایل‌های پوشهٔ <code>.next</code> توسط برنامهٔ در حال اجرا قفل شده‌اند</td>
+        <td><code>update-app.ps1</code> خودش قبل از بیلد برنامه را متوقف می‌کند. اگر دستی بیلد می‌گیرید اول: <code>schtasks /End /TN uastemdad-app</code> و <code>taskkill /F /IM node.exe</code> سپس صبر ۳ ثانیه و بیلد.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">سایت باز نمی‌شود</span> (حتی <code>http://94.182.131.94:3003</code>)</td>
+        <td>برنامه اجرا نیست یا در حلقهٔ خطا افتاده</td>
+        <td><code>start-app.ps1</code> ← اگر نشد لاگ را ببینید: <code>Get-Content C:\uastemdad\logs\app.log -Tail 50</code> ← در صورت تکرار: <code>start-app.ps1 -Restart</code> یا اجرای دوبارهٔ <code>update-app.ps1</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">HTTPS باز نمی‌شود</span> (IP:3003 کار می‌کند ولی دامنه نه)</td>
+        <td>Caddy اجرا نیست / <code>caddy.exe</code> نیست / گواهی صادر نشده / پورت‌های 80 و 443 بسته‌اند</td>
+        <td>۱) وضعیت: <code>schtasks /Query /TN uastemdad-proxy /V /FO LIST</code> — ۲) اجرای دستی: <code>&amp; C:\uastemdad\run-caddy.cmd</code> و دیدن خطا در <code>logs\caddy.log</code> — ۳) تعمیر کامل: <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\fix-https.ps1</code> — ۴) رکورد A دامنه و باز بودن پورت‌های 80/443 در فایروال سازمان را بررسی کنید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">دامنه، سایت قدیمی وردپرس را نشان می‌دهد</span></td>
+        <td>DNS دامنه هنوز به سرور قبلی اشاره می‌کند، یا کش مرورگر / Service Worker قدیمی</td>
+        <td>در هر جا: <code>nslookup uastemdad.ir 8.8.8.8</code> — باید <code>94.182.131.94</code> باشد؛ وگرنه در پنل ثبت‌کنندهٔ دامنه رکورد A را اصلاح کنید. در مرورگر هم Ctrl+F5 و پاک‌کردن دادهٔ سایت (در کروم: آیکون 🔒 کنار آدرس ← Site settings ← Delete data) برای حذف Service Worker قدیمی.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">بات بله ساکت است</span></td>
+        <td>برنامه اجرا نیست / توکن در <code>.env</code> نیست / <code>BALE_BOT_ENABLED=false</code> / خطای شبکه به <code>tapi.bale.ai</code></td>
+        <td>بخش ۴-۴ بالاتر ← مراحل چهارگانه را اجرا کنید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">خطای 409 در لاگ بات</span></td>
+        <td>دو نمونه از برنامه هم‌زمان polling می‌کنند</td>
+        <td><code>taskkill /F /IM node.exe</code> و بعد <code>start-app.ps1</code> — فقط یک نمونه باید اجرا باشد.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">npm install خطا می‌دهد</span></td>
+        <td>اینترنت/DNS یا تحریم رجیستری</td>
+        <td><code>update-app.ps1</code> خودکار رجیستری جایگزین (npmmirror) را امتحان می‌کند. اگر باز هم نشد، DNS را با اسکریپت <code>deploy.ps1</code> بازسازی کنید یا پروکسی سازمانی را چک کنید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">پورت 3003 اشغال است</span></td>
+        <td>پروسهٔ دیگری روی پورت مانده</td>
+        <td><code>netstat -ano | findstr :3003</code> ← شمارهٔ PID را بگیرید ← <code>taskkill /PID شماره /F</code></td>
+      </tr>
+      <tr>
+        <td><span class="tag err">SQLite database is locked</span></td>
+        <td>دسترسی هم‌زمان به فایل دیتابیس</td>
+        <td><code>start-app.ps1 -Restart</code>؛ قبل از کپی/جابه‌جایی دیتابیس حتماً برنامه را متوقف کنید (<code>-Stop</code>).</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">پورت‌های 80/443 اشغال</span> (پیام اسکریپت استقرار)</td>
+        <td>IIS سایت قدیمی وردپرس فعال است</td>
+        <td><code>Stop-Service W3SVC -Force; Set-Service W3SVC -StartupType Manual</code> سپس دوباره اسکریپت را اجرا کنید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">بیلد ناتمام / حافظه (OOM)</span></td>
+        <td>RAM کم در زمان بیلد</td>
+        <td>در اسکریپت‌ها <code>NODE_OPTIONS=--max-old-space-size=4096</code> تنظیم شده؛ اگر دستی بیلد می‌گیرید همین متغیر را ست کنید. برنامه‌های دیگر سرور را موقتاً ببندید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">قواعد فایروال بی‌اثر</span></td>
+        <td>خط‌مشی فایروال روی «مسدودسازی مطلق» (blockinboundalways) است</td>
+        <td><code>netsh advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound</code> سپس مطمئن شوید قواعد «Uastemdad HTTP/HTTPS/App» در فایروال با Profile=Any وجود دارند (<code>deploy.ps1</code> خودش می‌سازد).</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">گواهی HTTPS صادر نمی‌شود</span></td>
+        <td>رکورد A هنوز به این سرور نیست یا پورت 80 از بیرون بسته است (اعتبارسنجی Let's Encrypt)</td>
+        <td><code>nslookup uastemdad.ir 8.8.8.8</code> باید 94.182.131.94 بدهد؛ پورت 80 و 443 باید از اینترنت باز باشند؛ بعد <code>restart-caddy.cmd</code> و بررسی <code>logs\caddy.log</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>۵-۲) سناریوی گام‌به‌گام: «سایت کاملاً پایین است»</h3>
+  <ol class="flow">
+    <li><code>start-app.ps1 -Status</code> را اجرا کنید — این دستور وضعیت وظایف، پورت‌ها و پاسخ‌دهی را یک‌جا نشان می‌دهد.</li>
+    <li>اگر وظیفهٔ <code>uastemdad-app</code> روی Running است ولی پاسخ نمی‌دهد: <code>start-app.ps1 -Restart</code>.</li>
+    <li>اگر باز هم نشد، لاگ را ببینید: <code>Get-Content C:\uastemdad\logs\app.log -Tail 80</code> — خطای آخر معمولاً دلیل را می‌گوید.</li>
+    <li>اگر خطا مربوط به بیلد/فایل‌های ناقص است: <code>update-app.ps1</code> را دوباره اجرا کنید (بیلد تمیز می‌گیرد).</li>
+    <li>اگر هیچ‌کدام جواب نداد: <code>deploy.ps1</code> را دوباره اجرا کنید — داده‌ها دست نمی‌خورند.</li>
+  </ol>
+
+  <h3>۵-۳) سناریوی گام‌به‌گام: «HTTPS / دامنه مشکل دارد»</h3>
+  <ol class="flow">
+    <li>بررسی کنید Caddy نصب است؟ <code>Test-Path C:\uastemdad\tools\caddy.exe</code> — اگر <code>False</code> بود: <code>fix-https.ps1</code> را اجرا کنید.</li>
+    <li>وضعیت وظیفه: <code>schtasks /Query /TN uastemdad-proxy /V /FO LIST</code> — اگر غیر از Running بود: <code>schtasks /Run /TN uastemdad-proxy</code>.</li>
+    <li>اجرای دستی برای دیدن خطا: <code>&amp; C:\uastemdad\run-caddy.cmd</code> و بعد <code>Get-Content C:\uastemdad\logs\caddy.log -Tail 40</code>.</li>
+    <li>بررسی DNS: <code>nslookup uastemdad.ir 8.8.8.8</code> — باید IP سرور (94.182.131.94) باشد.</li>
+    <li>بررسی پورت‌ها: <code>netstat -ano | findstr ":443 :80"</code> باید listener داشته باشد (caddy.exe).</li>
+    <li>در نهایت: <code>fix-https.ps1</code> (فایروال + دانلود Caddy + ساخت وظیفه را یک‌جا انجام می‌دهد).</li>
+  </ol>
+
+  <div class="callout tip"><b>قانون طلایی:</b> ۹۰٪ مشکلات با سه دستور حل می‌شود: <code>start-app.ps1 -Status</code> ← <code>start-app.ps1 -Restart</code> ← <code>update-app.ps1</code>. اگر هر سه نشد، لاگ را برای پشتیبانی بفرستید.</div>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s6">
+  <h2 class="sec"><span class="num">۶</span> لاگ‌ها و پایش سامانه</h2>
+  <table>
+    <thead><tr><th style="width:44%">کار</th><th>دستور</th></tr></thead>
+    <tbody>
+      <tr><td>دیدن آخر ۵۰ خط لاگ برنامه</td><td><code>Get-Content C:\uastemdad\logs\app.log -Tail 50</code></td></tr>
+      <tr><td>لاگ زنده (مثل tail -f)</td><td><code>Get-Content C:\uastemdad\logs\app.log -Wait -Tail 30</code> (با Ctrl+C قطع می‌شود)</td></tr>
+      <tr><td>فقط خطاهای بات بله</td><td><code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "bale-bot" | Select-Object -Last 20</code></td></tr>
+      <tr><td>لاگ HTTPS</td><td><code>Get-Content C:\uastemdad\logs\caddy.log -Tail 50</code></td></tr>
+      <tr><td>جستجوی خطا در لاگ</td><td><code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "error" -SimpleMatch | Select-Object -Last 20</code></td></tr>
+      <tr><td>پاک‌کردن لاگ پرحجم</td><td><code>Set-Content C:\uastemdad\logs\app.log ""</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout info">لاگ‌ها به‌طور خودکار از ۱۰ مگابایت بزرگ‌تر نمی‌شوند (اسکریپت اجرا، لاگ قدیمی را به <code>.old.log</code> منتقل می‌کند).</div>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s7">
+  <h2 class="sec"><span class="num">۷</span> پشتیبان‌گیری (بکاپ) و بازگردانی</h2>
+  <p>فقط دو چیز لازم است: <b>فایل دیتابیس</b> و <b>پوشهٔ عکس‌ها</b>. بقیهٔ چیزها (کد، تنظیمات) از گیت‌هاب و اسکریپت‌ها بازسازی می‌شوند.</p>
+  <h3>بکاپ‌گیری (فقط کافی است یک‌جا کپی کنید)</h3>
+  <pre><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Stop
+$stamp = Get-Date -Format "yyyyMMdd-HHmm"
+New-Item -ItemType Directory -Force -Path "D:\backup\$stamp" | Out-Null
+Copy-Item C:\uastemdad\db\custom.db        "D:\backup\$stamp\custom.db"
+robocopy C:\uastemdad\data\uploads         "D:\backup\$stamp\uploads" /E
+powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1</code></pre>
+  <div class="callout warn"><b>مهم:</b> قبل از کپی دیتابیس، برنامه را با <code>-Stop</code> متوقف کنید تا فایل قفل نشود (SQLite database is locked). در پایان دوباره اجرا کنید.</div>
+  <h3>بازگردانی</h3>
+  <ol class="flow">
+    <li><code>start-app.ps1 -Stop</code></li>
+    <li>فایل بکاپ را روی <code>C:\uastemdad\db\custom.db</code> کپی کنید و محتوای پوشهٔ بکاپ uploads را در <code>C:\uastemdad\data\uploads</code> برگردانید.</li>
+    <li><code>start-app.ps1</code> — سامانه با همان داده‌های بکاپ بالا می‌آید.</li>
+  </ol>
+  <p>پیشنهاد: حداقل هفته‌ای یک‌بار بکاپ بگیرید و روی درایو دوم یا هارد خارجی نگه دارید.</p>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s8">
+  <h2 class="sec"><span class="num">۸</span> نکات امنیتی</h2>
+  <ul>
+    <li><b>گذرواژهٔ ادمین:</b> حساب پیش‌فرض <code>admin</code> را بعد از اولین ورود حتماً از پنل مدیریت (بخش کاربران) با گذرواژهٔ قوی عوض کنید. این حساب هم در پنل و هم برای اتصال به بات بله استفاده می‌شود.</li>
+    <li><b>توکن بات بله:</b> در <code>C:\uastemdad\app\.env</code> است. اگر لو رفت، از BotFather بله توکن جدید بگیرید، سطر <code>BALE_BOT_TOKEN</code> را عوض و برنامه را ری‌استارت کنید.</li>
+    <li><b>توکن گیت‌هاب:</b> توکن‌هایی که در گفتگو/اسکریپت‌ها استفاده شده را بعد از استقرار نهایی از حساب گیت‌هاب حذف یا تازه‌سازی کنید (Settings ← Developer settings ← Personal access tokens).</li>
+    <li><b>فایل .env را هرگز</b> به گیت‌هاب پوش نکنید (در <code>.gitignore</code> است).</li>
+    <li><b>قطع اتصال گوشی قدیمی:</b> اگر گوشی/چت قبلی مدیر را از دست دادید، در بات دکمهٔ «🔗 قطع اتصال» را بزنید یا از پنل مدیریت موقعیت را بررسی کنید؛ در بدترین حالت گذرواژهٔ ادمین را عوض کنید تا اتصال‌های قبلی بی‌اثر شوند.</li>
+    <li><b>دسترسی سرور:</b> RDP (پورت 3389) را در فایروال سازمان محدود کنید تا فقط از IPهای داخلی قابل دسترسی باشد.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s9">
+  <h2 class="sec"><span class="num">۹</span> پرسش‌های متداول</h2>
+  <details><summary>آیا بعد از ری‌استارت سرور، همه‌چیز خودکار بالا می‌آید؟</summary><p>بله. دو وظیفهٔ <code>uastemdad-app</code> و <code>uastemdad-proxy</code> با نوع ONSTART ساخته شده‌اند و پس از هر بوت ویندوز خودکار اجرا می‌شوند. اگر برنامه جایی کرش کند، فایل اجرای آن در حلقهٔ ۵ ثانیه‌ای دوباره راه‌اندازی‌اش می‌کند.</p></details>
+  <details><summary>اجرای update-app.ps1 داده‌ها را پاک می‌کند؟</summary><p>خیر. دیتابیس، عکس‌های آپلودی و فایل <code>.env</code> دست‌نخورده می‌مانند؛ فقط کد و بیلد تازه می‌شود. تنها وقتی ساختار جداول عوض شود، Prisma آن را بدون از دست دادن داده همگام می‌کند.</p></details>
+  <details><summary>حداکثر چند عکس می‌توانم با بات بفرستم؟</summary><p>۱۰ عکس برای هر خبر؛ هر عکس تا ۱۰ مگابایت. اولین عکس، تصویر شاخص (کاور) خبر می‌شود و بقیه در گالری همان خبر در صفحهٔ جزئیات نمایش داده می‌شوند.</p></details>
+  <details><summary>خبر را اشتباه منتشر کردم؛ چه کنم؟</summary><p>از خود بات: «🗂 فهرست اخبار و اطلاعیه‌ها» ← دکمهٔ 🗑 کنار همان خبر. یا از پنل مدیریت ← اخبار و اطلاعیه‌ها ← ویرایش/حذف.</p></details>
+  <details><summary>پیش‌نویس‌ها کجا می‌روند؟</summary><p>در پنل مدیریت، بخش «اخبار و اطلاعیه‌ها» با وضعیت «منتشر نشده/پیش‌نویس» ذخیره می‌شوند؛ هر وقت خواستید از پنل منتشرشان کنید.</p></details>
+  <details><summary>می‌خواهم چند نفر با بات خبر بگذارند؛ ممکن است؟</summary><p>بله؛ هر نفر با نام کاربری و گذرواژهٔ حساب خودش در پنل، مراحل اتصال را طی کند. همهٔ فعالیت‌ها در جدول گزارش بات ثبت می‌شود (در پنل قابل مشاهده است).</p></details>
+  <details><summary>آدرس مستقیم عکس‌های آپلودی چیست؟</summary><p><code>https://uastemdad.ir/uploads/نام‌فایل</code> — عکس‌های بات با الگوی <code>bot-...</code> ذخیره می‌شوند.</p></details>
+  <details><summary>چطور فقط برنامه را سریع ری‌استارت کنم؟</summary><p>دوبار‌کلیک روی <code>C:\uastemdad\restart-app.cmd</code> — یا برای ری‌استارت کامل‌تر: <code>start-app.ps1 -Restart</code>.</p></details>
+</section>
+
+<!-- ================================================================ -->
+<section class="card" id="s10">
+  <h2 class="sec"><span class="num">۱۰</span> کارت مرجع سریع دستورها</h2>
+  <table>
+    <thead><tr><th style="width:30%">هدف</th><th>دستور</th></tr></thead>
+    <tbody>
+      <tr><td>راه‌اندازی سامانه (همیشه)</td><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1</code></td></tr>
+      <tr><td>دیدن وضعیت</td><td><code>... start-app.ps1 -Status</code></td></tr>
+      <tr><td>ری‌استارت کامل</td><td><code>... start-app.ps1 -Restart</code></td></tr>
+      <tr><td>توقف کامل</td><td><code>... start-app.ps1 -Stop</code></td></tr>
+      <tr><td>به‌روزرسانی با کد جدید</td><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\update-app.ps1</code></td></tr>
+      <tr><td>نصب کامل از صفر</td><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\deploy.ps1</code></td></tr>
+      <tr><td>تعمیر HTTPS</td><td><code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\fix-https.ps1</code></td></tr>
+      <tr><td>ری‌استارت سریع برنامه</td><td><code>&amp; C:\uastemdad\restart-app.cmd</code></td></tr>
+      <tr><td>ری‌استارت سریع HTTPS</td><td><code>&amp; C:\uastemdad\restart-caddy.cmd</code></td></tr>
+      <tr><td>لاگ برنامه (زنده)</td><td><code>Get-Content C:\uastemdad\logs\app.log -Wait -Tail 30</code></td></tr>
+      <tr><td>لاگ HTTPS</td><td><code>Get-Content C:\uastemdad\logs\caddy.log -Tail 50</code></td></tr>
+      <tr><td>تست اتصال بات بله</td><td><code>Invoke-RestMethod "https://tapi.bale.ai/bot$((Get-Content C:\uastemdad\app\.env | ? { $_ -like 'BALE_BOT_TOKEN=*' }) -replace 'BALE_BOT_TOKEN=','')/getMe"</code></td></tr>
+      <tr><td>وضعیت وظایف</td><td><code>schtasks /Query /TN uastemdad-app /V /FO LIST</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout info">
+    <b>راه‌های ارتباط با سامانه:</b> سایت <code>https://uastemdad.ir</code> • پنل <code>https://uastemdad.ir/admin</code> • بات بله <code>ble.ir/Universityemdad_bot</code> • دسترسی موقت بدون دامنه: <code>http://94.182.131.94:3003</code>
+  </div>
+</section>
+
+<footer>
+  راهنمای سامانهٔ اطلاع‌رسانی مرکز آموزش علمی–کاربردی کمیته امداد امام خمینی (ره) — نسخهٔ ۱٫۰ • این فایل را می‌توانید چاپ کنید (Ctrl+P) و نگه دارید.
+</footer>
+
+</div>
+<script>
+  // کلیک روی هر بلوک دستور = کپی در کلیپ‌بورد
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('pre, .cmd-big');
+    if (!el) return;
+    var text = el.innerText.replace(/^کلیک = کپی\s*/m, '').replace(/^کپی شد ✓\s*/m, '').trim();
+    function done() {
+      el.classList.add('copied');
+      setTimeout(function () { el.classList.remove('copied'); }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (err) {}
+      document.body.removeChild(ta); done();
+    }
+  });
+</script>
+</body>
+</html>
