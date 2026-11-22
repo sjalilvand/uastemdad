@@ -99,7 +99,18 @@ $env:SITE_URL             = $siteUrl
 $env:NEXT_TELEMETRY_DISABLED = "1"
 Write-Host "OK  تنظیمات .env خوانده شد" -ForegroundColor Cyan
 
-# ---------------------- ۵) نصب وابستگی‌ها ----------------------
+# ---------------------- ۵) توقف برنامهٔ در حال اجرا ----------------------
+# مهم: برنامه باید قبل از npm install و prisma generate متوقف شود؛ وگرنه فایل‌های
+# node_modules (مثل query_engine-windows.dll.node) و .next قفل می‌شوند و عملیات
+# با خطای EPERM / EBUSY شکست می‌خورد.
+Write-Host "-> توقف برنامه برای به‌روزرسانی ایمن ..." -ForegroundColor Yellow
+cmd /c "schtasks /End /TN $TaskApp >nul 2>&1"
+cmd /c "taskkill /F /IM node.exe >nul 2>&1"
+Start-Sleep -Seconds 3
+# پاک‌کردن فایل‌های نیمه‌کارهٔ prisma از اجراهای قبلی (اگر داشته باشند)
+Get-ChildItem "$App\node_modules\.prisma\client" -Filter "*.tmp*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+# ---------------------- ۶) نصب وابستگی‌ها ----------------------
 Write-Host "-> نصب وابستگی‌ها (npm install — چند دقیقه) ..." -ForegroundColor Yellow
 npm install --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) {
@@ -112,20 +123,21 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "OK  وابستگی‌ها نصب شد" -ForegroundColor Cyan
 
-# ---------------------- ۶) همگام‌سازی دیتابیس ----------------------
+# ---------------------- ۷) همگام‌سازی دیتابیس ----------------------
 Write-Host "-> همگام‌سازی دیتابیس (prisma) ..." -ForegroundColor Yellow
 npx prisma generate
-if ($LASTEXITCODE -ne 0) { Write-Host "خطا در prisma generate." -ForegroundColor Red; return }
+if ($LASTEXITCODE -ne 0) {
+    # اگر باز هم قفلی ماند، یک‌بار دیگر با اطمینان کامل پروسه‌های node را می‌بندیم و تلاش می‌کنیم
+    Write-Host "   تلاش دوباره پس از بستن کامل پروسه‌ها ..." -ForegroundColor Yellow
+    cmd /c "taskkill /F /IM node.exe >nul 2>&1"
+    Start-Sleep -Seconds 5
+    Get-ChildItem "$App\node_modules\.prisma\client" -Filter "*.tmp*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    npx prisma generate
+    if ($LASTEXITCODE -ne 0) { Write-Host "خطا در prisma generate." -ForegroundColor Red; return }
+}
 npx prisma db push --accept-data-loss
 if ($LASTEXITCODE -ne 0) { Write-Host "خطا در همگام‌سازی دیتابیس." -ForegroundColor Red; return }
 Write-Host "OK  دیتابیس همگام شد (داده‌های قبلی حفظ شده)" -ForegroundColor Cyan
-
-# ---------------------- ۷) توقف برنامهٔ در حال اجرا ----------------------
-# وگرنه فایل‌های .next قفل می‌شوند و بیلد با خطای EBUSY شکست می‌خورد
-Write-Host "-> توقف موقت برنامه برای بیلد ایمن ..." -ForegroundColor Yellow
-cmd /c "schtasks /End /TN $TaskApp >nul 2>&1"
-cmd /c "taskkill /F /IM node.exe >nul 2>&1"
-Start-Sleep -Seconds 3
 
 # ---------------------- ۸) بیلد نسخهٔ production ----------------------
 Write-Host "-> بیلد نسخهٔ production (چند دقیقه — پنجره را نبندید) ..." -ForegroundColor Yellow
