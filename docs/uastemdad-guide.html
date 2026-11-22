@@ -367,8 +367,8 @@ Invoke-RestMethod "https://tapi.bale.ai/bot$token/getMe"</code></pre>
       </tr>
       <tr>
         <td><span class="tag err">بات بله ساکت است</span></td>
-        <td>برنامه اجرا نیست / توکن در <code>.env</code> نیست / <code>BALE_BOT_ENABLED=false</code> / خطای شبکه به <code>tapi.bale.ai</code></td>
-        <td>بخش ۴-۴ بالاتر ← مراحل چهارگانه را اجرا کنید.</td>
+        <td>برنامه اجرا نیست / توکن در <code>.env</code> نیست / <code>BALE_BOT_ENABLED=false</code> / خطای شبکه به <code>tapi.bale.ai</code> / (نسخه‌های قدیمی) باگ Next standalone که <code>register()</code> بات را هرگز صدا نمی‌زد</td>
+        <td>در لاگ بگردید: <code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "bale-bot","start-3003" -SimpleMatch | Select-Object -Last 20</code> — سطر سالم: <code>[start-3003] ... BALE_BOT_TOKEN=set ✓</code> و سپس <code>[bale-bot] polling برای @… آغاز شد</code>. اگر <code>MISSING ✗</code> بود: <code>BALE_BOT_TOKEN</code> را در <code>.env</code> تنظیم و <code>update-app.ps1</code> را اجرا کنید. خطای 401 یعنی توکن نامعتبر؛ 409 یعنی دو نمونه هم‌زمان polling می‌کنند. از نسخهٔ جدید، <code>start-3003.js</code> خودش <code>register()</code> را مستقیم صدا می‌زند (باگ شناخته‌شدهٔ Next در standalone دور زده شد) و <code>.env</code> را هم در زمان اجرا می‌خواند.</td>
       </tr>
       <tr>
         <td><span class="tag warn">خطای 409 در لاگ بات</span></td>

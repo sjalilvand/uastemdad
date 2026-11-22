@@ -6,7 +6,10 @@ import { getUpdates, getMe, botToken, type BaleUpdate } from "./api";
 import { processUpdate } from "./handlers";
 import { logBot } from "./session";
 
-const g = globalThis as unknown as { __balePoller?: { running: boolean; offset: number; startedAt: Date } };
+const g = globalThis as unknown as {
+  __balePoller?: { running: boolean; offset: number; startedAt: Date };
+  __baleStart?: Promise<void>;
+};
 
 export function pollerStatus() {
   return g.__balePoller
@@ -23,7 +26,14 @@ export function botEnabled(): boolean {
   return flag !== "false" && flag !== "0" && flag !== "no";
 }
 
-export async function startPoller(): Promise<void> {
+export function startPoller(): Promise<void> {
+  // قفل شروع: اگر هم‌زمان از instrumentation و start-3003.js صدا زده شود،
+  // فقط یک حلقهٔ polling ساخته می‌شود (جلوگیری از خطای 409)
+  if (!g.__baleStart) g.__baleStart = doStartPoller();
+  return g.__baleStart;
+}
+
+async function doStartPoller(): Promise<void> {
   if (!botToken()) {
     console.log("[bale-bot] BALE_BOT_TOKEN تنظیم نشده است؛ polling غیرفعال ماند.");
     return;

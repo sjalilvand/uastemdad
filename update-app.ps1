@@ -211,7 +211,7 @@ if ($okLocal -and $okHttps) {
     Write-Host "                  start-app.ps1   |   لاگ Caddy: $LogsDir\caddy.log" -ForegroundColor Yellow
 } else {
     Write-Host "  سایت:           $siteUrl"
-}                          -ForegroundColor Yellow
+}
 Write-Host "  پنل مدیریت:     $siteUrl/admin"                    -ForegroundColor Yellow
 Write-Host "  لاگ برنامه:     $LogsDir\app.log"                  -ForegroundColor Yellow
 Write-Host ""
