@@ -128,6 +128,14 @@ export async function getMe(): Promise<BaleResponse<BotInfo>> {
   return call<BotInfo>("getMe", {}, 15000);
 }
 
+/**
+ * حذف وب‌هوک — اگر روزی روی بات وب‌هوک تنظیم شده باشد، getUpdates با خطای 409
+ * جواب می‌دهد و polling کار نمی‌کند. این متد بی‌ضرر و idempotent است.
+ */
+export async function deleteWebhook(): Promise<BaleResponse<boolean>> {
+  return call<boolean>("deleteWebhook", { drop_pending_updates: false }, 15000);
+}
+
 /** دریافت آپدیت‌ها به روش long polling */
 export async function getUpdates(
   offset: number,

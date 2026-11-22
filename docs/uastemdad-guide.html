@@ -183,7 +183,7 @@
   <table>
     <thead><tr><th style="width:34%">مسیر</th><th>محتویات</th></tr></thead>
     <tbody>
-      <tr><td><code>C:\uastemdad\app</code></td><td>کد برنامه (مخزن گیت‌هاب) — اسکریپت‌های <code>deploy.ps1</code> ، <code>update-app.ps1</code> ، <code>start-app.ps1</code> ، <code>fix-https.ps1</code> هم اینجاست</td></tr>
+      <tr><td><code>C:\uastemdad\app</code></td><td>کد برنامه (مخزن گیت‌هاب) — اسکریپت‌های <code>deploy.ps1</code> ، <code>update-app.ps1</code> ، <code>start-app.ps1</code> ، <code>set-bot-token.ps1</code> ، <code>fix-https.ps1</code> هم اینجاست</td></tr>
       <tr><td><code>C:\uastemdad\app\.env</code></td><td>تنظیمات حساس: توکن بات بله (<code>BALE_BOT_TOKEN</code>)، کلید امنیتی، مسیر دیتابیس و…</td></tr>
       <tr><td><code>C:\uastemdad\db\custom.db</code></td><td>دیتابیس (همهٔ اخبار، اعضا، تنظیمات) — <span class="tag warn">مهم‌ترین فایل برای بکاپ</span></td></tr>
       <tr><td><code>C:\uastemdad\data\uploads</code></td><td>عکس‌های آپلودشده (از پنل یا بات بله) با آدرس <code>/uploads/نام‌فایل</code></td></tr>
@@ -228,6 +228,12 @@
     <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، <b>اول برنامه به‌طور خودکار متوقف می‌شود</b> (تا فایل‌ها قفل نشوند)، بعد وابستگی‌ها نصب، دیتابیس همگام، برنامه بیلد و <b>هم برنامه و هم HTTPS (Caddy) دوباره راه‌اندازی</b> می‌شوند و در پایان سلامتِ پورت 3003 و دامنه بررسی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b> نکتهٔ مهم: برای به‌روزرسانی همیشه از همین اسکریپت استفاده کنید؛ اگر دستی <code>npm install</code> یا <code>prisma generate</code> را در حالی که برنامه روشن است اجرا کنید، خطای EPERM می‌گیرید.</p>
   </div>
 
+  <div class="cmd-block">
+    <div class="lbl">⭐ ۴) تنظیم یا تعویض توکن بات بله — فقط یک بار یا هنگام تعویض توکن</div>
+    <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\set-bot-token.ps1</div>
+    <p>اگر لاگ برنامه گفت <code>BALE_BOT_TOKEN=MISSING ✗</code> یا بات ساکت بود، فقط همین دستور را اجرا کنید: توکن بات را می‌پرسد (از گفتگوی BotFather بله می‌گیرید و Paste می‌کنید)، معتبر بودنش را با <code>getMe</code> از سرورهای بله چک می‌کند، در <code>.env</code> ذخیره می‌کند (بقیهٔ تنظیمات دست‌نخورده می‌مانند)، برنامه را ری‌استارت و خط <code>[bale-bot] polling برای @… آغاز شد</code> را در لاگ تأیید می‌کند.</p>
+  </div>
+
   <h3>حالت‌های دیگر <code>start-app.ps1</code></h3>
   <table>
     <thead><tr><th style="width:52%">دستور</th><th>کار</th></tr></thead>
@@ -257,7 +263,7 @@
     <tbody>
       <tr><td>نام کاربری بات</td><td><code>@Universityemdad_bot</code></td></tr>
       <tr><td>لینک ورود مستقیم</td><td><code>ble.ir/Universityemdad_bot</code></td></tr>
-      <tr><td>محل ذخیرهٔ توکن</td><td><code>C:\uastemdad\app\.env</code> ← سطر <code>BALE_BOT_TOKEN=...</code> (برای تغییر توکن، همین سطر را عوض و برنامه را ری‌استارت کنید)</td></tr>
+      <tr><td>محل ذخیرهٔ توکن</td><td><code>C:\uastemdad\app\.env</code> ← سطر <code>BALE_BOT_TOKEN=...</code> (ساده‌ترین راه برای تنظیم یا تعویض توکن: اجرای <code>set-bot-token.ps1</code> — دستور ۴ بخش ۳؛ نیازی به ویرایش دستی نیست)</td></tr>
       <tr><td>نوع ارتباط</td><td>Long-polling از داخل برنامهٔ سایت — نیازی به webhook و آدرس عمومی ندارد</td></tr>
     </tbody>
   </table>
@@ -368,7 +374,7 @@ Invoke-RestMethod "https://tapi.bale.ai/bot$token/getMe"</code></pre>
       <tr>
         <td><span class="tag err">بات بله ساکت است</span></td>
         <td>برنامه اجرا نیست / توکن در <code>.env</code> نیست / <code>BALE_BOT_ENABLED=false</code> / خطای شبکه به <code>tapi.bale.ai</code> / (نسخه‌های قدیمی) باگ Next standalone که <code>register()</code> بات را هرگز صدا نمی‌زد</td>
-        <td>در لاگ بگردید: <code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "bale-bot","start-3003" -SimpleMatch | Select-Object -Last 20</code> — سطر سالم: <code>[start-3003] ... BALE_BOT_TOKEN=set ✓</code> و سپس <code>[bale-bot] polling برای @… آغاز شد</code>. اگر <code>MISSING ✗</code> بود: <code>BALE_BOT_TOKEN</code> را در <code>.env</code> تنظیم و <code>update-app.ps1</code> را اجرا کنید. خطای 401 یعنی توکن نامعتبر؛ 409 یعنی دو نمونه هم‌زمان polling می‌کنند. از نسخهٔ جدید، <code>start-3003.js</code> خودش <code>register()</code> را مستقیم صدا می‌زند (باگ شناخته‌شدهٔ Next در standalone دور زده شد) و <code>.env</code> را هم در زمان اجرا می‌خواند.</td>
+        <td>در لاگ بگردید: <code>Select-String -Path C:\uastemdad\logs\app.log -Pattern "bale-bot","start-3003" -SimpleMatch | Select-Object -Last 20</code> — سطر سالم: <code>[start-3003] ... BALE_BOT_TOKEN=set ✓</code> و سپس <code>[bale-bot] polling برای @… آغاز شد</code>. اگر <code>MISSING ✗</code> بود: <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\set-bot-token.ps1</code> را اجرا کنید — توکن را Paste می‌کنید؛ خودش معتبربودن را چک می‌کند، در <code>.env</code> ذخیره، برنامه را ری‌استارت و polling را تأیید می‌کند. خطای 401 یعنی توکن نامعتبر؛ 409 یعنی وب‌هوک قدیمی مانده یا دو نمونه هم‌زمان polling می‌کنند (نسخهٔ جدید خودش وب‌هوک را پاک می‌کند). از نسخهٔ جدید، <code>start-3003.js</code> خودش <code>register()</code> را مستقیم صدا می‌زند (باگ شناخته‌شدهٔ Next در standalone دور زده شد) و <code>.env</code> را هم در زمان اجرا می‌خواند.</td>
       </tr>
       <tr>
         <td><span class="tag warn">خطای 409 در لاگ بات</span></td>

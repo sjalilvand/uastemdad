@@ -2,13 +2,14 @@
  * حلقهٔ long-polling بات بله — فقط یک نمونه در هر پروسه اجرا می‌شود.
  * از طریق src/instrumentation.ts هنگام بالا آمدن سرور Next فعال می‌شود.
  */
-import { getUpdates, getMe, botToken, type BaleUpdate } from "./api";
+import { getUpdates, getMe, deleteWebhook, botToken, type BaleUpdate } from "./api";
 import { processUpdate } from "./handlers";
 import { logBot } from "./session";
 
 const g = globalThis as unknown as {
   __balePoller?: { running: boolean; offset: number; startedAt: Date };
   __baleStart?: Promise<void>;
+  __baleWebhookCleared?: boolean;
 };
 
 export function pollerStatus() {
@@ -54,6 +55,15 @@ async function doStartPoller(): Promise<void> {
     return;
   }
 
+  g.__baleWebhookCleared = false;
+
+  // احتیاط: اگر روزی وب‌هوک روی بات مانده باشد، همان اول پاک می‌کنیم تا getUpdates
+  // خطای 409 نگیرد (متد بی‌ضرر و idempotent است)
+  const wh0 = await deleteWebhook();
+  if (!wh0.ok) {
+    console.error("[bale-bot] پاک‌سازی احتیاطی وب‌هوک ناموفق بود (غیرمانع‌ساز):", wh0.description);
+  }
+
   g.__balePoller = { running: true, offset: 0, startedAt: new Date() };
   console.log(`[bale-bot] polling برای @${me.result?.username} آغاز شد.`);
   await logBot("POLLER_START", `@${me.result?.username || ""}`);
@@ -73,7 +83,14 @@ async function doStartPoller(): Promise<void> {
           }
         } else {
           consecutiveErrors++;
-          // 409 یعنی نمونهٔ دیگری در حال polling است — کمی صبر
+          // 409 یعنی یا نمونهٔ دیگری polling می‌کند یا وب‌هوک قدیمی مانده —
+          // یک‌بار در هر اجرا، وب‌هوک را پاک می‌کنیم و بلافاصله ادامه می‌دهیم
+          if (res.error_code === 409 && !g.__baleWebhookCleared) {
+            g.__baleWebhookCleared = true;
+            console.error("[bale-bot] خطای 409 — پاک‌کردن وب‌هوک قدیمی و ادامهٔ polling ...");
+            const wh = await deleteWebhook();
+            if (wh.ok) { consecutiveErrors = 0; continue; }
+          }
           if (consecutiveErrors % 10 === 1) {
             console.error("[bale-bot] getUpdates error:", res.description);
             await logBot("POLL_ERROR", res.description || "");

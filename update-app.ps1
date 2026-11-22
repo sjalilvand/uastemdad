@@ -216,5 +216,9 @@ Write-Host "  پنل مدیریت:     $siteUrl/admin"                    -Foreg
 Write-Host "  لاگ برنامه:     $LogsDir\app.log"                  -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  نکته: بات بله همراه با خودِ برنامه بالا می‌آید (polling داخل سرور)." -ForegroundColor White
+if (-not $baleToken) {
+    Write-Host "  هشدار: BALE_BOT_TOKEN در .env تنظیم نشده است — بات بله خاموش می‌ماند!" -ForegroundColor Red
+    Write-Host "  تنظیم توکن:     powershell -ExecutionPolicy Bypass -File $App\set-bot-token.ps1" -ForegroundColor Yellow
+}
 Write-Host "  اگر HTTPS هم مشکل دارد:  powershell -ExecutionPolicy Bypass -File $App\fix-https.ps1" -ForegroundColor White
 Write-Host ""
