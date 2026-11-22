@@ -225,7 +225,7 @@
   <div class="cmd-block">
     <div class="lbl">⭐ ۳) اجرای کدهای جدید — به‌روزرسانی سامانه با آخرین نسخه</div>
     <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\update-app.ps1</div>
-    <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، <b>اول برنامه به‌طور خودکار متوقف می‌شود</b> (تا فایل‌ها قفل نشوند)، بعد وابستگی‌ها نصب، دیتابیس همگام و برنامه بیلد و راه‌اندازی می‌شود و در پایان سلامت آن بررسی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b> نکتهٔ مهم: برای به‌روزرسانی همیشه از همین اسکریپت استفاده کنید؛ اگر دستی <code>npm install</code> یا <code>prisma generate</code> را در حالی که برنامه روشن است اجرا کنید، خطای EPERM می‌گیرید.</p>
+    <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، <b>اول برنامه به‌طور خودکار متوقف می‌شود</b> (تا فایل‌ها قفل نشوند)، بعد وابستگی‌ها نصب، دیتابیس همگام، برنامه بیلد و <b>هم برنامه و هم HTTPS (Caddy) دوباره راه‌اندازی</b> می‌شوند و در پایان سلامتِ پورت 3003 و دامنه بررسی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b> نکتهٔ مهم: برای به‌روزرسانی همیشه از همین اسکریپت استفاده کنید؛ اگر دستی <code>npm install</code> یا <code>prisma generate</code> را در حالی که برنامه روشن است اجرا کنید، خطای EPERM می‌گیرید.</p>
   </div>
 
   <h3>حالت‌های دیگر <code>start-app.ps1</code></h3>
@@ -339,6 +339,16 @@ Invoke-RestMethod "https://tapi.bale.ai/bot$token/getMe"</code></pre>
         <td><span class="tag err">Application error: a server-side exception has occurred</span> همراه با «Digest: 4016258897» یا هر Digest دیگر</td>
         <td>خطای runtime سمت سرور — تقریباً همیشه یعنی به‌روزرسانی قبلی نیمه‌کاره مانده (مثلاً EPERM) و کد بیلدشده با کتابخانه‌های داخل <code>node_modules</code> ناهماهنگ است</td>
         <td>۱) برنامه را کاملاً متوقف کنید: <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Stop</code> — ۲) <code>update-app.ps1</code> را کامل اجرا کنید تا generate و build از نو و در وضعیت تمیز انجام شود — ۳) اگر تکرار شد، علت را از لاگ بگیرید: <code>Get-Content C:\uastemdad\logs\app.log -Tail 60</code>. هرگز فقط با <code>-Restart</code> سعی در بالا آوردن نسخهٔ خراب نکنید؛ اول باید build تمیز بگیرید.</td>
+      </tr>
+      <tr>
+        <td><span class="tag warn">همان خطای Digest قدیمی را می‌بینم</span> در حالی که <code>http://94.182.131.94:3003</code> سالم است</td>
+        <td>دو حالت: ۱) Caddy خاموش است (مثلاً بعد از <code>-Stop</code>، فقط برنامه بالا آمده) — ۲) کش Service Worker مرورگر صفحهٔ خطای دورهٔ خرابی را هنوز نشان می‌دهد</td>
+        <td>۱) اجرای <code>start-app.ps1</code> (هر دو وظیفه را روشن می‌کند و وضعیت پورت 443 را نشان می‌دهد) — ۲) در مرورگر <b>Ctrl+Shift+R</b> — ۳) اگر باز هم ماند: در Chrome آیکون <b>🔒/ⓘ</b> کنار آدرس ← Site settings ← Delete data (یا DevTools ← Application ← Service workers ← Unregister) و دوباره باز کنید. از نسخهٔ ۴ اسکریپت به بعد، صفحه‌های خطا اصلاً کش نمی‌شوند و کش قدیمی خودکار پاک می‌شود.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">پورت 443/80 بسته است</span> ولی پورت 3003 باز (دامنه کار نمی‌کند، IP:3003 کار می‌کند)</td>
+        <td>Caddy اجرا نیست — رایج‌ترین حالت: بعد از <code>-Stop</code> یا به‌روزرسانی، وظیفهٔ <code>uastemdad-proxy</code> روشن نشده</td>
+        <td>۱) <code>schtasks /Query /TN uastemdad-proxy /V /FO LIST | findstr "Status"</code> — اگر Ready بود: <code>schtasks /Run /TN uastemdad-proxy</code> یا ساده‌تر <code>start-app.ps1</code> — ۲) اگر بالا نیامد: <code>&amp; C:\uastemdad\run-caddy.cmd</code> و لاگ <code>logs\caddy.log</code> — ۳) تعمیر کامل: <code>fix-https.ps1</code>. (نسخهٔ جدید update-app.ps1 خودش بعد از هر به‌روزرسانی Caddy را هم روشن می‌کند.)</td>
       </tr>
       <tr>
         <td><span class="tag err">سایت باز نمی‌شود</span> (حتی <code>http://94.182.131.94:3003</code>)</td>

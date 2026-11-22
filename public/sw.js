@@ -1,14 +1,10 @@
-/* Service Worker سامانه uastemdad — نسخهٔ ۳
+/* Service Worker سامانه uastemdad — نسخهٔ ۴
    ─────────────────────────────────────────
-   تغییرات نسخهٔ ۳ (رفع خطای ERR_CONNECTION_REFUSED):
-   ۱) در لوکال (حالت توسعه) هیچ صفحه‌ای کش نمی‌شود؛ بنابراین وقتی سرور خاموش است
-      به‌جای نسخهٔ قدیمی و خراب، صفحهٔ راهنمای «سرور در دسترس نیست» نمایش داده می‌شود.
-   ۲) درخواست‌های Turbopack/HMR حالت توسعه هرگز دستکاری نمی‌شوند.
-   ۳) خطای fetch داخل هندلرها بی‌صدا مدیریت می‌شود (بدون استثنای uncaught در کنسول).
-   ۴) مانیفست، آیکون‌ها و لوگو هم precache می‌شوند.
-   با افزایش شمارهٔ VERSION، کش‌های نسخهٔ قبلی (از جمله HTML قدیمی dev) به‌صورت
-   خودکار در اولین فعال‌سازی حذف می‌شوند. */
-const VERSION = "uast-v3";
+   تغییرات نسخهٔ ۴ (رفع ماندن صفحهٔ خطای «Application error … Digest: …»):
+   ۱) پاسخ‌های خطا (مثل 500) هرگز در کش صفحه‌ها ذخیره نمی‌شوند؛ فقط پاسخ سالم (200) کش می‌شود.
+   ۲) با افزایش VERSION به uast-v4، کش‌های قدیمی (شامل صفحهٔ خطای کش‌شدهٔ دورهٔ خرابی)
+      در اولین فعال‌سازی خودکار حذف می‌شوند. */
+const VERSION = "uast-v4";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = "/offline.html";
@@ -104,12 +100,15 @@ self.addEventListener("fetch", (event) => {
       event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
       return;
     }
-    // نسخهٔ منتشرشده: ابتدا شبکه، در نبود شبکه نسخهٔ ذخیره‌شده + هشدار به صفحه
+    // نسخهٔ منتشرشده: ابتدا شبکه؛ فقط پاسخ سالم (ok) کش می‌شود تا صفحهٔ خطا در کش نماند.
+    // در نبود شبکه، نسخهٔ ذخیره‌شدهٔ سالم + هشدار به صفحه نمایش داده می‌شود.
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(PAGE_CACHE).then((c) => c.put(request, copy));
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(PAGE_CACHE).then((c) => c.put(request, copy));
+          }
           return res;
         })
         .catch(async () => {

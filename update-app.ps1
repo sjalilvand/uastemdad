@@ -9,7 +9,7 @@
 #     ۲) وابستگی‌ها را نصب می‌کند (npm install)
 #     ۳) دیتابیس را با اسکیمای جدید همگام می‌کند (prisma) — داده‌ها حفظ می‌شوند
 #     ۴) برنامه را متوقف، نسخهٔ جدید را بیلد و دوباره راه‌اندازی می‌کند
-#     ۵) سلامت برنامه را روی پورت 3003 بررسی می‌کند
+#     ۵) برنامه و HTTPS (Caddy) را دوباره راه‌اندازی و سلامتِ پورت 3003 و دامنه را بررسی می‌کند
 #
 #   نکته: دیتابیس، عکس‌های آپلودی و فایل .env دست‌نخورده باقی می‌مانند.
 #   اگر پوشهٔ C:\uastemdad\app وجود ندارد، اول باید deploy.ps1 را اجرا کنید.
@@ -24,8 +24,11 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 $Root     = "C:\uastemdad"
 $App      = "$Root\app"
 $LogsDir  = "$Root\logs"
-$TaskApp  = "uastemdad-app"
-$AppPort  = 3003
+$ToolsDir = "$Root\tools"
+$TaskApp   = "uastemdad-app"
+$TaskProxy = "uastemdad-proxy"
+$AppPort   = 3003
+$Domain    = "uastemdad.ir"
 
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
@@ -157,6 +160,15 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "هشدار: اجرای وظیفهٔ '$TaskApp' ناموفق بود — دستی اجرا کنید:  schtasks /Run /TN $TaskApp" -ForegroundColor Yellow
 }
 
+# Caddy (HTTPS) هم باید بالا بیاید — بعد از -Stop یا تعمیرات ممکن است خاموش مانده باشد
+if (Test-Path "$ToolsDir\caddy.exe") {
+    $proxyExists = (schtasks /Query /TN $TaskProxy 2>$null) -ne $null
+    if ($proxyExists) {
+        Write-Host "-> راه‌اندازی HTTPS (Caddy) ..." -ForegroundColor Yellow
+        cmd /c "schtasks /Run /TN $TaskProxy >nul 2>&1"
+    }
+}
+
 # ---------------------- ۱۰) بررسی سلامت ----------------------
 Write-Host "-> بررسی سلامت برنامه ..." -ForegroundColor Yellow
 $okLocal = $false
@@ -167,7 +179,17 @@ foreach ($i in 1..40) {
     } catch { Start-Sleep -Seconds 3 }
 }
 
+# بررسی HTTPS دامنه (غیرمانع‌ساز — فقط اطلاع)
+$okHttps = $false
+for ($i = 0; $i -lt 10; $i++) {
+    try {
+        $r = Invoke-WebRequest -UseBasicParsing -Uri "https://$Domain/" -TimeoutSec 8
+        if ($r.StatusCode -eq 200) { $okHttps = $true; break }
+    } catch { Start-Sleep -Seconds 3 }
+}
+
 Write-Host ""
+
 Write-Host "================================================" -ForegroundColor Green
 if ($okLocal) {
     Write-Host "  به‌روزرسانی کامل شد و برنامه بالا آمده است!"   -ForegroundColor Green
@@ -182,7 +204,14 @@ if ($okLocal) {
     Write-Host "  بررسی لاگ:      Get-Content $LogsDir\app.log -Tail 50" -ForegroundColor Yellow
     Write-Host "  راه‌اندازی دوباره: $Root\restart-app.cmd"          -ForegroundColor Yellow
 }
-Write-Host "  سایت:           $siteUrl"                          -ForegroundColor Yellow
+if ($okLocal -and $okHttps) {
+    Write-Host "  سایت:           https://$Domain  — در دسترس ✓"                -ForegroundColor Green
+} elseif ($okLocal) {
+    Write-Host "  سایت:           https://$Domain — هنوز در دسترس نیست؛ چند دقیقه بعد دوباره چک کنید:" -ForegroundColor Yellow
+    Write-Host "                  start-app.ps1   |   لاگ Caddy: $LogsDir\caddy.log" -ForegroundColor Yellow
+} else {
+    Write-Host "  سایت:           $siteUrl"
+}                          -ForegroundColor Yellow
 Write-Host "  پنل مدیریت:     $siteUrl/admin"                    -ForegroundColor Yellow
 Write-Host "  لاگ برنامه:     $LogsDir\app.log"                  -ForegroundColor Yellow
 Write-Host ""
