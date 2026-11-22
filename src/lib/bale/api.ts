@@ -157,6 +157,7 @@ export async function sendMessage(
     chat_id: chatId,
     text,
     reply_markup: keyboard,
+    parse_mode: "HTML",
   });
 }
 
@@ -177,7 +178,7 @@ export async function sendPhoto(
   photo: string,
   caption?: string
 ): Promise<BaleResponse<BaleMessage>> {
-  return call<BaleMessage>("sendPhoto", { chat_id: chatId, photo, caption }, 30000);
+  return call<BaleMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML" }, 30000);
 }
 
 export async function deleteMessage(chatId: string | number, messageId: number) {
@@ -195,7 +196,14 @@ export async function sendMediaGroup(
   chatId: string | number,
   media: MediaPhoto[]
 ): Promise<BaleResponse<BaleMessage[]>> {
-  return call<BaleMessage[]>("sendMediaGroup", { chat_id: chatId, media }, 30000);
+  return call<BaleMessage[]>(
+    "sendMediaGroup",
+    {
+      chat_id: chatId,
+      media: media.map((m) => ({ ...m, parse_mode: m.caption ? "HTML" : undefined })),
+    },
+    30000
+  );
 }
 
 /** دریافت اطلاعات فایل برای دانلود (file_path لازم است) */

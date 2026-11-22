@@ -251,7 +251,7 @@ async function askConfirm(chatId: string, data: DraftData) {
       const media: MediaPhoto[] = ids.map((m, i) => ({
         type: "photo",
         media: m,
-        caption: i === 0 ? `🖼 پیش‌نمایش: ${clip(data.title || "", 80)}` : undefined,
+        caption: i === 0 ? `🖼 پیش‌نمایش: ${esc(clip(data.title || "", 80))}` : undefined,
       }));
       await sendMediaGroup(chatId, media);
     } else if (ids.length === 1) {
