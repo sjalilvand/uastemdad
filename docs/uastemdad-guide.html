@@ -225,7 +225,7 @@
   <div class="cmd-block">
     <div class="lbl">⭐ ۳) اجرای کدهای جدید — به‌روزرسانی سامانه با آخرین نسخه</div>
     <div class="cmd-big">powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\update-app.ps1</div>
-    <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، وابستگی‌ها نصب، دیتابیس همگام و برنامه بیلد و راه‌اندازی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b></p>
+    <p>هر وقت نسخهٔ جدیدی از کد منتشر شد (مثلاً بهبود بات یا سایت)، فقط همین دستور را اجرا کنید: آخرین کد از گیت‌هاب گرفته می‌شود، <b>اول برنامه به‌طور خودکار متوقف می‌شود</b> (تا فایل‌ها قفل نشوند)، بعد وابستگی‌ها نصب، دیتابیس همگام و برنامه بیلد و راه‌اندازی می‌شود و در پایان سلامت آن بررسی می‌شود. <b>داده‌ها، عکس‌ها و تنظیمات حفظ می‌شوند.</b> نکتهٔ مهم: برای به‌روزرسانی همیشه از همین اسکریپت استفاده کنید؛ اگر دستی <code>npm install</code> یا <code>prisma generate</code> را در حالی که برنامه روشن است اجرا کنید، خطای EPERM می‌گیرید.</p>
   </div>
 
   <h3>حالت‌های دیگر <code>start-app.ps1</code></h3>
@@ -329,6 +329,16 @@ Invoke-RestMethod "https://tapi.bale.ai/bot$token/getMe"</code></pre>
         <td><span class="tag err">EBUSY</span> خطای بیلد: «资源 busy / resource in use / EBUSY»</td>
         <td>فایل‌های پوشهٔ <code>.next</code> توسط برنامهٔ در حال اجرا قفل شده‌اند</td>
         <td><code>update-app.ps1</code> خودش قبل از بیلد برنامه را متوقف می‌کند. اگر دستی بیلد می‌گیرید اول: <code>schtasks /End /TN uastemdad-app</code> و <code>taskkill /F /IM node.exe</code> سپس صبر ۳ ثانیه و بیلد.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">EPERM</span> خطای prisma generate: «operation not permitted, rename 'query_engine-windows.dll.node.tmp…'»</td>
+        <td>برنامهٔ در حال اجرا فایل query engine پرِیزیما را در <code>node_modules\.prisma\client</code> قفل کرده و عمل تغییرنام شکست می‌خورد؛ نتیجه‌اش client نیمه‌کاره و ناسازگار با engine است</td>
+        <td>نسخهٔ جدید <code>update-app.ps1</code> خودش <b>قبل از npm install و prisma generate</b> برنامه را متوقف می‌کند، فایل‌های نیمه‌کارهٔ <code>*.tmp*</code> را پاک می‌کند و در صورت ماندن قفل، یک‌بار دیگر با بستن کامل پروسه‌های node تلاش می‌کند. راه دستی: <code>start-app.ps1 -Stop</code> ← <code>taskkill /F /IM node.exe</code> ← اجرای دوبارهٔ <code>update-app.ps1</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="tag err">Application error: a server-side exception has occurred</span> همراه با «Digest: 4016258897» یا هر Digest دیگر</td>
+        <td>خطای runtime سمت سرور — تقریباً همیشه یعنی به‌روزرسانی قبلی نیمه‌کاره مانده (مثلاً EPERM) و کد بیلدشده با کتابخانه‌های داخل <code>node_modules</code> ناهماهنگ است</td>
+        <td>۱) برنامه را کاملاً متوقف کنید: <code>powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Stop</code> — ۲) <code>update-app.ps1</code> را کامل اجرا کنید تا generate و build از نو و در وضعیت تمیز انجام شود — ۳) اگر تکرار شد، علت را از لاگ بگیرید: <code>Get-Content C:\uastemdad\logs\app.log -Tail 60</code>. هرگز فقط با <code>-Restart</code> سعی در بالا آوردن نسخهٔ خراب نکنید؛ اول باید build تمیز بگیرید.</td>
       </tr>
       <tr>
         <td><span class="tag err">سایت باز نمی‌شود</span> (حتی <code>http://94.182.131.94:3003</code>)</td>
