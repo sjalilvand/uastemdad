@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { formatDate } from "@/lib/jalali";
 
@@ -44,6 +45,7 @@ interface BotData {
   bot: { id?: number; username?: string; name?: string } | null;
   admins: BotAdminRow[];
   logs: BotLogRow[];
+  channelId: string;
   stats: { newsCount: number; annCount: number; draftCount: number; total: number };
 }
 
@@ -56,6 +58,8 @@ const ACTION_META: Record<string, { label: string; cls: string }> = {
   POLLER_START: { label: "راه‌اندازی بات", cls: "bg-violet-100 text-violet-700" },
   POLLER_START_FAILED: { label: "خطای راه‌اندازی", cls: "bg-red-100 text-red-700" },
   POLL_ERROR: { label: "خطای polling", cls: "bg-orange-100 text-orange-700" },
+  CHANNEL_PUBLISH: { label: "انتشار از کانال", cls: "bg-cyan-100 text-cyan-700" },
+  CHANNEL_ERROR: { label: "خطای کانال", cls: "bg-red-100 text-red-700" },
   ERROR: { label: "خطا", cls: "bg-red-100 text-red-700" },
 };
 
@@ -90,11 +94,16 @@ export function BotPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const [channel, setChannel] = useState("");
 
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/bot", { cache: "no-store" });
-      if (res.ok) setData(await res.json());
+      if (res.ok) {
+        const json = (await res.json()) as BotData;
+        setData(json);
+        setChannel(json.channelId || "");
+      }
     } finally {
       setLoading(false);
     }
@@ -130,6 +139,23 @@ export function BotPage() {
       await load();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveChannel = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/bot", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId: channel }),
+      });
+      const json = await res.json();
+      setToast(json.message || "ذخیره شد");
+      await load();
+    } finally {
+      setBusy(false);
+      setTimeout(() => setToast(""), 3000);
     }
   };
 
@@ -255,6 +281,36 @@ export function BotPage() {
           <li>از منوی بات «📰 افزودن خبر جدید» را انتخاب و مراحل (عنوان ← خلاصه ← متن ← عکس‌ها ← دسته) را طی کنید.</li>
           <li>با زدن «✅ انتشار در سایت»، خبر فوراً در صفحهٔ اخبار سایت نمایش داده می‌شود.</li>
         </ol>
+      </div>
+
+      {/* کانال بله — انتشار خودکار پست‌های کانال در سایت */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <h3 className="font-extrabold flex items-center gap-2 text-sm">
+          <Radio className="h-4 w-4 text-gold" />
+          کانال بله — انتشار خودکار پست‌های کانال در سایت
+        </h3>
+        <p className="mt-2 text-xs leading-6 text-muted-foreground">
+          بات را در کانال به‌عنوان مدیر اضافه کنید و شناسهٔ کانال را این‌جا ذخیره کنید. از آن به بعد هر پستی که مدیر اخبار در کانال بنویسد، خودکار به‌صورت خبر یا اطلاعیه در سایت منتشر می‌شود: سطر اول = عنوان، بقیه = متن کامل، عکس‌های پست = تصاویر خبر (متن با «اطلاعیه» یا 📢 = اطلاعیه، در غیر این صورت خبر). پس از انتشار، به همهٔ مدیران متصل بات پیام تأیید با لینک می‌آید.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
+            placeholder="شناسهٔ کانال مثل ‎@mychannel یا ‎-1001234567890"
+            dir="ltr"
+            className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-xs font-bold outline-none focus:border-primary"
+          />
+          <button
+            onClick={saveChannel}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-bold hover:bg-primary/90 disabled:opacity-50"
+          >
+            ذخیرهٔ شناسهٔ کانال
+          </button>
+        </div>
+        <div className="mt-3 rounded-xl bg-secondary/60 p-4 text-xs leading-6 text-muted-foreground">
+          <b>ترفند گرفتن شناسه:</b> یک پست از کانال را در گفتگوی بات فوروارد کنید — بات شناسهٔ کانال را نشان می‌دهد. تا وقتی شناسه ذخیره نشده باشد، بات پست‌های کانال را فقط در لاگ گزارش می‌کند و چیزی در سایت منتشر نمی‌شود.
+        </div>
       </div>
 
       {/* مدیران متصل */}

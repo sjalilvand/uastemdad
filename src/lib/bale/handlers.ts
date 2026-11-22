@@ -24,6 +24,7 @@ import {
   type MediaPhoto,
 } from "./api";
 import { clip, esc, faDate, faNum, fullName, textToHtml } from "./text";
+import { handleChannelPost } from "./channel";
 import {
   getSession,
   logBot,
@@ -396,6 +397,23 @@ async function handleText(chatId: string, state: StateKey, data: DraftData, msg:
   if (cmd === "help") return handleHelp(chatId);
   if (cmd === "status") return handleStatus(chatId);
 
+  // راهنمای اتصال کانال: یک پست از کانال را به گفتگوی بات فوروارد کنید تا شناسه را نشان دهد
+  if (msg.forward_from_chat?.type === "channel") {
+    const fc = msg.forward_from_chat;
+    await sendMessage(
+      chatId,
+      `📡 این پیام از کانال «${esc(fc.title || fc.username || "")}» فوروارد شده است.\n\n` +
+        `<b>شناسهٔ کانال:</b> <code>${esc(String(fc.id || ""))}</code>` +
+        (fc.username ? ` یا <code>@${esc(fc.username)}</code>` : "") +
+        `\n\nراه‌اندازی انتشار خودکار پست‌های کانال در سایت:\n` +
+        `۱) بات را در کانال به‌عنوان مدیر (Admin) اضافه کنید.\n` +
+        `۲) شناسهٔ بالا را در پنل مدیریت ← بخش بات ← «شناسهٔ کانال» ذخیره کنید.\n` +
+        `۳) از این به بعد هر پست کانال به‌صورت خبر یا اطلاعیه در سایت منتشر می‌شود (متن با «اطلاعیه» یا 📢 = اطلاعیه).`,
+      mainKeyboard()
+    );
+    return;
+  }
+
   switch (state) {
     case States.NEWS_TITLE: {
       if (!raw || raw.length < 3) {
@@ -752,6 +770,7 @@ export async function handleMessage(update: BaleUpdate) {
 export async function processUpdate(update: BaleUpdate): Promise<void> {
   try {
     if (update.callback_query) await handleCallback(update);
+    else if (update.channel_post) await handleChannelPost(update.channel_post);
     else if (update.message || update.edited_message) await handleMessage(update);
   } catch (e) {
     console.error("[bale-bot] processUpdate error:", e);

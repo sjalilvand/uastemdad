@@ -21,13 +21,14 @@ export async function GET() {
       bot = { id: me.result.id, username: me.result.username, name: me.result.first_name };
     }
   }
-  const [admins, logs, newsCount, annCount, draftCount, total] = await Promise.all([
+  const [admins, logs, newsCount, annCount, draftCount, total, channelSetting] = await Promise.all([
     db.botAdmin.findMany({ orderBy: { createdAt: "desc" } }),
     db.botLog.findMany({ orderBy: { createdAt: "desc" }, take: 40 }),
     db.post.count({ where: { type: "NEWS", source: "BALE" } }),
     db.post.count({ where: { type: "ANNOUNCEMENT", source: "BALE" } }),
     db.post.count({ where: { source: "BALE", published: false } }),
     db.post.count(),
+    db.setting.findUnique({ where: { key: "baleChannelId" } }),
   ]);
   return NextResponse.json({
     configured,
@@ -37,6 +38,7 @@ export async function GET() {
     bot,
     admins,
     logs,
+    channelId: channelSetting?.value || "",
     stats: { newsCount, annCount, draftCount, total },
   });
 }
@@ -59,6 +61,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, message: "بات متوقف شد" });
   }
   return NextResponse.json({ error: "عملیات نامعتبر" }, { status: 400 });
+}
+
+/** تنظیم شناسهٔ کانال برای انتشار خودکار پست‌های کانال در سایت */
+export async function PUT(req: NextRequest) {
+  const session = await requireSession();
+  if (!session) {
+    return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 401 });
+  }
+  const body = (await req.json().catch(() => ({}))) as { channelId?: string };
+  const value = (body.channelId || "").trim().slice(0, 120);
+  await db.setting.upsert({
+    where: { key: "baleChannelId" },
+    create: { key: "baleChannelId", value },
+    update: { value },
+  });
+  return NextResponse.json({
+    ok: true,
+    channelId: value,
+    message: value ? "شناسهٔ کانال ذخیره شد — از این به بعد پست‌های کانال خودکار در سایت منتشر می‌شوند" : "شناسهٔ کانال پاک شد",
+  });
 }
 
 /** غیرفعال‌سازی اتصال یک مدیر بله */

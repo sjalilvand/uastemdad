@@ -85,6 +85,8 @@ export interface BaleMessage {
   date?: number;
   text?: string;
   caption?: string;
+  media_group_id?: string;
+  forward_from_chat?: BaleChat;
   photo?: BalePhotoSize[];
   document?: { file_id: string; file_name?: string; mime_type?: string; file_size?: number };
   video?: { file_id: string; mime_type?: string };
@@ -101,6 +103,7 @@ export interface BaleUpdate {
   update_id: number;
   message?: BaleMessage;
   edited_message?: BaleMessage;
+  channel_post?: BaleMessage;
   callback_query?: BaleCallbackQuery;
 }
 
@@ -143,7 +146,7 @@ export async function getUpdates(
 ): Promise<BaleResponse<BaleUpdate[]>> {
   return call<BaleUpdate[]>(
     "getUpdates",
-    { offset, timeout, allowed_updates: ["message", "callback_query"] },
+    { offset, timeout, allowed_updates: ["message", "callback_query", "channel_post"] },
     (timeout + 15) * 1000
   );
 }
