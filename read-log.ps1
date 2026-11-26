@@ -63,14 +63,14 @@ function Show-Log {
     if ($Follow) {
         Write-Host "نمایش زندهٔ لاگ — برای خروج Ctrl+C را بزنید." -ForegroundColor Magenta
         if ($filter) {
-            Get-Content $Path -Wait -Tail $Tail | ForEach-Object { if ($_ -match $filter) { Write-Host $_ } }
+            Get-Content $Path -Wait -Tail $Tail -Encoding UTF8 -Encoding UTF8 | ForEach-Object { if ($_ -match $filter) { Write-Host $_ } }
         } else {
             Get-Content $Path -Wait -Tail $Tail
         }
         return
     }
 
-    $lines = @(Get-Content $Path -Tail $Tail)
+    $lines = @(Get-Content $Path -Tail $Tail -Encoding UTF8)
     if ($filter) {
         $lines = @($lines | Where-Object { $_ -match $filter })
     }

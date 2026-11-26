@@ -47,7 +47,14 @@ if ([string]::IsNullOrWhiteSpace($ChatId)) {
 }
 $ChatId = $ChatId.Trim().Trim('"').Trim("'")
 if ($ChatId -notmatch '^-?\d{3,}$') {
-    Write-Host "خطا: شناسهٔ گفتگو باید عددی باشد (مثلاً 123456789). چیزی ذخیره نشد." -ForegroundColor Red
+    Write-Host "خطا: شناسهٔ گفتگو باید عددی باشد. چیزی ذخیره نشد." -ForegroundColor Red
+    return
+}
+if ($ChatId -eq '123456789') {
+    Write-Host "خطا: 123456789 همان عدد نمونهٔ مستندات است، نه شناسهٔ واقعی شما!" -ForegroundColor Red
+    Write-Host "  در بات بله دستور /status بزنید ← خط «شناسهٔ گفتگوی شما» را کپی کنید و" -ForegroundColor Yellow
+    Write-Host "  دوباره اجرا کنید: set-monitor-chat.ps1 -ChatId <عدد واقعی>" -ForegroundColor Yellow
+    Write-Host "  چیزی در .env ذخیره نشد." -ForegroundColor Red
     return
 }
 

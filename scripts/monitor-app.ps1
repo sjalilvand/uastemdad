@@ -77,7 +77,7 @@ function Read-EnvMap {
     $map = @{}
     try {
         if (Test-Path $EnvFile) {
-            foreach ($line in Get-Content $EnvFile -ErrorAction SilentlyContinue) {
+            foreach ($line in Get-Content $EnvFile -Encoding UTF8 -ErrorAction SilentlyContinue) {
                 if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$') {
                     $map[$Matches[1]] = $Matches[2].Trim().Trim('"').Trim("'")
                 }
@@ -102,16 +102,24 @@ function Send-Bale([string]$text) {
         Write-Log "پیام بله ارسال نشد — BALE_BOT_TOKEN یا MONITOR_CHAT_ID در .env تنظیم نشده است"
         return $false
     }
+    $script:LastBaleError = ""
     if ($text.Length -gt 3800) { $text = $text.Substring(0, 3800) }
     try {
         $body = ConvertTo-Json @{ chat_id = $script:MonitorChatId; text = $text; parse_mode = "HTML" } -Compress
         $body = ConvertTo-JsonSafe $body
         $res = Invoke-RestMethod -Method Post -Uri "https://tapi.bale.ai/bot$($script:BaleToken)/sendMessage" -ContentType "application/json; charset=utf-8" -Body $body -TimeoutSec 20
         if ($res.ok) { Write-Log "OK  پیام بله ارسال شد"; return $true }
-        Write-Log ("ارسال پیام بله ناموفق: {0}" -f $res.description)
+        $script:LastBaleError = [string]$res.description
+        Write-Log ("ارسال پیام بله ناموفق: {0}" -f $script:LastBaleError)
         return $false
     } catch {
-        Write-Log ("ارسال پیام بله خطا: {0}" -f $_.Exception.Message)
+        $script:LastBaleError = $_.Exception.Message
+        Write-Log ("ارسال پیام بله خطا: {0}" -f $script:LastBaleError)
+        if ($script:LastBaleError -match '404') {
+            Write-Log "راهنما: خطای ۴۰۴ یعنی این شناسهٔ گفتگو (MONITOR_CHAT_ID) در بله وجود ندارد — احتمالاً شناسهٔ نمونه/اشتباه ثبت شده. در بات دستور /status بزنید و عدد واقعی را با set-monitor-chat.ps1 ثبت کنید."
+        } elseif ($script:LastBaleError -match '401') {
+            Write-Log "راهنما: خطای ۴۰۱ یعنی توکن بات (BALE_BOT_TOKEN) نامعتبر است — set-bot-token.ps1 را اجرا کنید."
+        }
         return $false
     }
 }
@@ -126,7 +134,7 @@ function Test-HealthUrl([string]$url, [int]$timeoutSec) {
 
 function Tail-Text([string]$path, [int]$n) {
     try {
-        $lines = @(Get-Content $path -Tail $n -ErrorAction SilentlyContinue)
+        $lines = @(Get-Content $path -Tail $n -Encoding UTF8 -ErrorAction SilentlyContinue)
         $txt = ($lines -join "`n")
         if ($txt -and $txt.Length -gt 700) { $txt = "..." + $txt.Substring($txt.Length - 700) }
         return $txt
@@ -219,7 +227,7 @@ function Show-Test {
     if (Test-Path $LogFile) {
         Write-Host ""
         Write-Host "  ---------- ۱۰ خط آخر لاگ پایش ----------" -ForegroundColor DarkGray
-        Get-Content $LogFile -Tail 10 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        Get-Content $LogFile -Tail 10 -Encoding UTF8 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
     }
 
     Write-Host ""
@@ -228,6 +236,18 @@ function Show-Test {
         $sent = Send-Bale ("✅ <b>پیام آزمایشی پایش</b>`nاگر این پیام را می‌بینید، اطلاع‌رسانی دان/بالا آمدن سامانه فعال است.`n🏫 uastemdad.ir — زمان: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
         if ($sent) {
             Write-Host "OK  پیام آزمایشی ارسال شد — در بله چک کنید" -ForegroundColor Green
+        } else {
+            if ("$script:LastBaleError" -match "404") {
+                Write-Host "خطا: شناسهٔ گفتگو نامعتبر است (۴۰۴ = این گفتگو در بله پیدا نشد)." -ForegroundColor Red
+                Write-Host "  اگر MONITOR_CHAT_ID = 123456789 است، همان عدد نمونهٔ مستندات بود!" -ForegroundColor Yellow
+                Write-Host "  در بات بله دستور /status بزنید ← «شناسهٔ گفتگوی شما» را کپی کنید و دوباره" -ForegroundColor Yellow
+                Write-Host "  set-monitor-chat.ps1 -ChatId <عدد واقعی> را اجرا کنید." -ForegroundColor Yellow
+            } elseif ("$script:LastBaleError" -match "401") {
+                Write-Host "خطا: توکن بات نامعتبر است (۴۰۱) — set-bot-token.ps1 را اجرا کنید." -ForegroundColor Red
+            } else {
+                Write-Host ("ارسال ناموفق: {0}" -f $script:LastBaleError) -ForegroundColor Red
+                Write-Host "  اتصال اینترنت سرور به tapi.bale.ai را هم می‌توانید چک کنید." -ForegroundColor Yellow
+            }
         }
     } else {
         Write-Host "  پیام مستقیم پایشگر غیرفعال است (MONITOR_CHAT_ID تنظیم نشده)." -ForegroundColor Yellow
