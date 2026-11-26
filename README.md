@@ -113,6 +113,21 @@ PORT=3003 npm start
 
 > پس از اولین ورود، از بخش «کاربران» رمز عبور را تغییر دهید.
 
+## پایش و عملیات (سرور ویندوز)
+
+سامانه سه لایهٔ پایش دارد تا دان‌شدن هرگز بی‌سروصدا نباشد: نقطهٔ سلامت `/api/health`، مانیتور داخلی (گزارش «بالا آمد + مدت قطعی» به مدیرانِ بات بله) و پایشگر بیرونی هر ۱ دقیقه با راه‌اندازی مجدد خودکار تا ۳ بار.
+
+```powershell
+# نصب پایش روی سرور (یک‌بار، با دسترسی Administrator):
+powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\install-monitor.ps1
+# آزمایش:
+powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\scripts\monitor-app.ps1 -Test
+```
+
+- چک‌لیست عیب‌یابی: [`docs/CHECKLIST.md`](./docs/CHECKLIST.md)
+- راهنمای کامل عملیات و نگهداری: [`docs/RUNBOOK.md`](./docs/RUNBOOK.md)
+- پیام‌های هشدار پایشگر (دان ماندن/HTTPS/دیسک) با تنظیم `MONITOR_CHAT_ID` فعال می‌شوند: در بات `/status` بزنید و شناسه را با `set-monitor-chat.ps1 -ChatId <شناسه>` ثبت کنید.
+
 ## ساختار پروژه
 
 ```
@@ -120,6 +135,13 @@ prisma/schema.prisma        # مدل‌های دیتابیس
 prisma/seed.ts              # داده اولیه (محتوای واقعی سامانه)
 setup.ps1                   # نصب و اجرای خودکار در ویندوز (پورت 3003)
 SETUP-POWERSHELL.md         # راهنمای PowerShell
+docs/CHECKLIST.md           # چک‌لیست عیب‌یابی «سایت بالا نمی‌آید»
+docs/RUNBOOK.md             # راهنمای عملیات، پایش و نگهداری
+scripts/monitor-app.ps1     # پایشگر بیرونی (ری‌استارت خودکار + پیام بات)
+install-monitor.ps1         # نصب وظیفهٔ پایش هر ۱ دقیقه
+set-monitor-chat.ps1        # تنظیم شناسهٔ دریافت پیام‌های هشدار
+src/lib/monitor.ts          # مانیتور داخلی (ضربان + گزارش بوت/قطعی)
+src/app/api/health/route.ts # نقطهٔ بررسی سلامت
 src/lib/prefs.tsx           # موتور شخصی‌سازی و دسترسی‌پذیری
 src/lib/i18n-dictionaries.ts# فرهنگ‌های چندزبانه (fa/en/ar)
 src/lib/member-auth.ts      # احراز هویت اعضا

@@ -51,6 +51,14 @@ if (-not (Test-Path "$App\.git")) {
     return
 }
 
+# ---------------------- قفلِ نگهداری ----------------------
+# مانیتورینگ (وظیفهٔ uastemdad-monitor) نباید وسط به‌روزرسانی برنامه را ری‌استارت کند؛
+# تا پایان این اسکریپت، پایشگر به این قفل احترام می‌گذارد (حداکثر ۲۰ دقیقه).
+$maintLock = "$LogsDir\maintenance.lock"
+New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
+[System.IO.File]::WriteAllText($maintLock, (Get-Date).ToString("o"))
+function Remove-MaintLock { Remove-Item $maintLock -ErrorAction SilentlyContinue }
+
 # ---------------------- ۳) دریافت آخرین کد از گیت‌هاب ----------------------
 Write-Host "-> دریافت آخرین کد از گیت‌هاب ..." -ForegroundColor Yellow
 $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
@@ -64,6 +72,7 @@ for ($try = 1; $try -le 3; $try++) {
 $ErrorActionPreference = $prev
 if (-not $fetchOk) {
     Write-Host "خطا: اتصال به گیت‌هاب برقرار نشد (اینترنت/DNS سرور را بررسی کنید) و دوباره اجرا کنید." -ForegroundColor Red
+    Remove-MaintLock
     return
 }
 $oldCommit = ""
@@ -121,6 +130,7 @@ if ($LASTEXITCODE -ne 0) {
     npm install --no-audit --no-fund --registry=https://registry.npmmirror.com
     if ($LASTEXITCODE -ne 0) {
         Write-Host "خطا در نصب وابستگی‌ها — اینترنت را بررسی کنید و اسکریپت را دوباره اجرا کنید." -ForegroundColor Red
+        Remove-MaintLock
         return
     }
 }
@@ -136,10 +146,10 @@ if ($LASTEXITCODE -ne 0) {
     Start-Sleep -Seconds 5
     Get-ChildItem "$App\node_modules\.prisma\client" -Filter "*.tmp*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     npx prisma generate
-    if ($LASTEXITCODE -ne 0) { Write-Host "خطا در prisma generate." -ForegroundColor Red; return }
+    if ($LASTEXITCODE -ne 0) { Write-Host "خطا در prisma generate." -ForegroundColor Red; Remove-MaintLock; return }
 }
 npx prisma db push --accept-data-loss
-if ($LASTEXITCODE -ne 0) { Write-Host "خطا در همگام‌سازی دیتابیس." -ForegroundColor Red; return }
+if ($LASTEXITCODE -ne 0) { Write-Host "خطا در همگام‌سازی دیتابیس." -ForegroundColor Red; Remove-MaintLock; return }
 Write-Host "OK  دیتابیس همگام شد (داده‌های قبلی حفظ شده)" -ForegroundColor Cyan
 
 # ---------------------- ۸) بیلد نسخهٔ production ----------------------
@@ -149,6 +159,7 @@ npm run build
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$App\.next\standalone\server.js")) {
     Write-Host "خطا در بیلد پروژه — خروجی بالا را بررسی کنید." -ForegroundColor Red
     Write-Host "راه‌اندازی نسخهٔ قبلی:  $Root\restart-app.cmd" -ForegroundColor Yellow
+    Remove-MaintLock
     return
 }
 Write-Host "OK  بیلد کامل شد" -ForegroundColor Cyan
@@ -168,6 +179,9 @@ if (Test-Path "$ToolsDir\caddy.exe") {
         cmd /c "schtasks /Run /TN $TaskProxy >nul 2>&1"
     }
 }
+
+# قفل نگهداری آزاد شد — از این‌جا پایشگر (uastemdad-monitor) دوباره فعال است
+Remove-MaintLock
 
 # ---------------------- ۱۰) بررسی سلامت ----------------------
 Write-Host "-> بررسی سلامت برنامه ..." -ForegroundColor Yellow
@@ -221,4 +235,10 @@ if (-not $baleToken) {
     Write-Host "  تنظیم توکن:     powershell -ExecutionPolicy Bypass -File $App\set-bot-token.ps1" -ForegroundColor Yellow
 }
 Write-Host "  اگر HTTPS هم مشکل دارد:  powershell -ExecutionPolicy Bypass -File $App\fix-https.ps1" -ForegroundColor White
+if ((schtasks /Query /TN "uastemdad-monitor" 2>$null) -eq $null) {
+    Write-Host "  پیشنهاد: پایشگر نصب نشده — اجرا کنید: powershell -ExecutionPolicy Bypass -File $App\install-monitor.ps1" -ForegroundColor Yellow
+} else {
+    Write-Host "  پایش:      وظیفهٔ uastemdad-monitor هر ۱ دقیقه سلامت را چک می‌کند (لاگ: $LogsDir\monitor.log)" -ForegroundColor White
+}
+Remove-MaintLock
 Write-Host ""

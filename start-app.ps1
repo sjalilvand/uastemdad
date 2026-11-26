@@ -74,12 +74,18 @@ function Stop-Everything {
     cmd /c "taskkill /F /IM node.exe >nul 2>&1"
     cmd /c "taskkill /F /IM caddy.exe >nul 2>&1"
     Start-Sleep -Seconds 2
-    Write-Host "OK  همه متوقف شدند" -ForegroundColor Cyan
+    # قفلِ نگهداری: پایشگر این توقفِ دستی را «قطعی» حساب نکند و دوباره بالا نیاورد.
+    # (راه‌اندازی بعدی با همین اسکریپت، قفل را برمی‌دارد)
+    New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
+    [System.IO.File]::WriteAllText("$LogsDir\maintenance.lock", (Get-Date).ToString("o"))
+    Write-Host "OK  همه متوقف شدند (پایشگر تا راه‌اندازی بعدی غیرفعال است)" -ForegroundColor Cyan
 }
 
 function Start-Services {
     Write-Host ""
     Write-Host "-> راه‌اندازی سامانه ..." -ForegroundColor Yellow
+    # برداشتن قفلِ نگهداری (اگر از توقف قبلی مانده باشد) — پایشگر دوباره فعال می‌شود
+    Remove-Item "$LogsDir\maintenance.lock" -ErrorAction SilentlyContinue
 
     # --- برنامهٔ اصلی ---
     if (-not (Test-TaskExists $TaskApp)) {

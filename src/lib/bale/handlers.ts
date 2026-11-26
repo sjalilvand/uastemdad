@@ -511,6 +511,7 @@ async function handleStatus(chatId: string) {
     "━━━━━━━━━━━━━━",
     `🪪 بات: ${botName}${me.ok && me.result?.username ? ` (<code>@${esc(me.result.username)}</code>)` : ""}`,
     `🔗 اتصال شما: <b>فعال</b> (${faNum(admins)} مدیر متصل)`,
+    `🆔 شناسهٔ گفتگوی شما (برای MONITOR_CHAT_ID): <code>${esc(chatId)}</code>`,
     `📰 اخبار منتشرشده: ${faNum(newsCount)}`,
     `📢 اطلاعیه‌های منتشرشده: ${faNum(annCount)}`,
     `💾 پیش‌نویس‌ها: ${faNum(drafts)}`,

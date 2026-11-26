@@ -12,6 +12,10 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   try {
+    // مانیتورینگ داخلی: ضربان، گزارش بوت/قطعی و هشدارها به مدیران بات بله
+    const { startMonitor } = await import("@/lib/monitor");
+    startMonitor();
+
     const { startPoller, isBotConfigured, botEnabled } = await import("@/lib/bale/poller");
     if (!isBotConfigured()) {
       console.error("[bale-bot] BALE_BOT_TOKEN تنظیم نشده است — بات خاموش ماند (فایل .env یا run-app.cmd را چک کنید)");
