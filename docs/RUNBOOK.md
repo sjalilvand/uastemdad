@@ -62,6 +62,13 @@ powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\set-monitor-chat.ps1 -
 | `install-monitor.ps1` | نصب وظیفهٔ پایش هر ۱ دقیقه |
 | `monitor-app.ps1 -Test` | وضعیت پایش + پیام آزمایشی بات |
 | `monitor-app.ps1 -NoRestart` | فقط هشدار، بدون ری‌استارت (عیب‌یابی) |
+| `read-log.ps1` | خواندن لاگ برنامه با فیلتر (به‌جای Get-Content دستی) |
+| `read-log.ps1 -Errors` | فقط خطاهای اخیر (قرمز) از app.log |
+| `read-log.ps1 -Log caddy` | لاگ HTTPS (Caddy) |
+| `read-log.ps1 -Log monitor` | لاگ پایشگر |
+| `read-log.ps1 -Log all` | ۱۵ خط آخر هر سهٔ لاگ، یک‌جا |
+| `read-log.ps1 -Find "EADDRINUSE"` | جستجوی یک کلمه در لاگ |
+| `read-log.ps1 -Follow` | نمایش زندهٔ لاگ |
 
 الگوی اجرا:
 ```powershell

@@ -17,8 +17,9 @@ powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\start-app.ps1 -Status
 
 ## گام ۲ — لاگ برنامه
 ```powershell
-Get-Content C:\uastemdad\logs\app.log -Tail 50
+powershell -ExecutionPolicy Bypass -File C:\uastemdad\app\read-log.ps1 -Errors
 ```
+(معادل دستی: `Get-Content C:\uastemdad\logs\app.log -Tail 50`)
 - خطاهای قرمز (`EADDRINUSE`، `database is locked`، `EPERM`) معمولاً علت را همان‌جا نشان می‌دهند.
 - راه‌حل خطاهای رایج: بخش «خطاهای رایج» در `docs/RUNBOOK.md`.
 
